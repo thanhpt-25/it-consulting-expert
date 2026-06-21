@@ -143,7 +143,7 @@ The 15 skills map to four phases of a consulting engagement, plus a cross-cuttin
 - Polite decline template in Japanese keigo (if NO-GO)
 
 **Example:**
-> "I just received an RFP from Mitsubishi UFJ for a payment system migration. The notebook is set up. Should we bid?"
+> "I just received an RFP from Sakura Financial Group for a payment system migration. The notebook is set up. Should we bid?"
 
 ---
 
@@ -166,7 +166,7 @@ The 15 skills map to four phases of a consulting engagement, plus a cross-cuttin
 **How it works:** This is the orchestrator skill. It runs 11 extraction queries against NotebookLM, then calls the other proposal-phase skills (team, effort, cost, technical, delivery) to build each section. You can run it standalone and it will produce everything, or run the component skills individually for focused work.
 
 **Example:**
-> "Create a proposal for the RFP in my 'NTT Data Cloud Migration' notebook"
+> "Create a proposal for the RFP in my 'Tanaka Corp Cloud Migration' notebook"
 
 ---
 
@@ -541,8 +541,8 @@ Every piece of information in the output must be labeled:
 ### Example 1: Complete Proposal Cycle (End-to-End)
 
 ```
-You:  "I received an RFP from Sumitomo Mitsui for a core banking API platform.
-       I've uploaded it to NotebookLM as 'RFP - SMBC API Platform'."
+You:  "I received an RFP from Sakura Financial Group for a core banking API platform.
+       I've uploaded it to NotebookLM as 'RFP - Sakura API Platform'."
 
 Step 1 → "Analyze this RFP and give me a Go/No-Go"
          → rfp-analysis produces: Score 4.2 — Strong GO
@@ -664,4 +664,4 @@ Enterprise (Fortune 500, 大企業), mid-market (中堅企業), and startup enga
 
 - Plugin version: 1.2.0
 - Skills: 15
-- Author: Neo
+- Author: thanhpt_25
