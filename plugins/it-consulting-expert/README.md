@@ -26,9 +26,9 @@ All skills integrate with **Google NotebookLM** as the single source of truth. C
 
 1. Open Claude Desktop → **Settings** → **Capabilities**
 2. Click **Install Plugin** and select the `it-consulting-expert.plugin` file
-3. The 13 skills will appear in your skill list
+3. The 15 skills will appear in your skill list
 
-To verify installation, ask Claude: "List my skills" — you should see all 13 skills prefixed with `it-consulting-expert:`.
+To verify installation, ask Claude: "List my skills" — you should see all 15 skills prefixed with `it-consulting-expert:`.
 
 ---
 
