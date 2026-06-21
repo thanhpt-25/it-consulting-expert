@@ -1,0 +1,29 @@
+{
+  "name": "neo-consulting-tools",
+  "owner": {
+    "name": "Neo",
+    "email": "thanhpolimi@gmail.com"
+  },
+  "description": "Full-lifecycle IT consulting toolkit for Japanese SIer engagements — RFP analysis, proposals, estimation, technical solutions, presentations, and more.",
+  "plugins": [
+    {
+      "name": "it-consulting-expert",
+      "source": "./plugins/it-consulting-expert",
+      "description": "Full-lifecycle IT consulting expert for Japanese SIer engagements. Covers RFP analysis, proposals, team composition, effort/cost estimation, technical solutions, project delivery, presentations (Claude Design), progress reporting, change management, vendor management, maintenance contracts, lessons learned, and multi-perspective review board. NotebookLM integration for RFP-grounded, hallucination-free outputs.",
+      "version": "1.2.0",
+      "author": {
+        "name": "Neo"
+      },
+      "category": "consulting",
+      "tags": [
+        "consulting",
+        "proposal",
+        "estimation",
+        "SIer",
+        "japanese-enterprise",
+        "rfp-analysis",
+        "notebooklm"
+      ]
+    }
+  ]
+}

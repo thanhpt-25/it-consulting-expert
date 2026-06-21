@@ -1,0 +1,32 @@
+{
+  "name": "it-consulting-expert",
+  "version": "1.2.0",
+  "description": "Full-lifecycle IT consulting expert for Japanese SIer engagements. Covers RFP analysis, proposals, team composition, effort/cost estimation, technical solutions, project delivery, presentations (Claude Design), progress reporting, change management, vendor management, maintenance contracts, lessons learned, and multi-perspective review board. NotebookLM integration for RFP-grounded, hallucination-free outputs.",
+  "author": {
+    "name": "Neo"
+  },
+  "keywords": [
+    "consulting",
+    "proposal",
+    "estimation",
+    "SIer",
+    "team-composition",
+    "infrastructure",
+    "software-development",
+    "digital-transformation",
+    "rfp-analysis",
+    "presentation",
+    "progress-report",
+    "change-management",
+    "vendor-management",
+    "maintenance",
+    "lessons-learned",
+    "notebooklm",
+    "japanese-enterprise",
+    "claude-design",
+    "visual-presentation",
+    "proposal-review",
+    "multi-perspective-review",
+    "quality-gate"
+  ]
+}
