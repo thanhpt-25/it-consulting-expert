@@ -26,9 +26,9 @@ All skills integrate with **Google NotebookLM** as the single source of truth. C
 
 1. Open Claude Desktop → **Settings** → **Capabilities**
 2. Click **Install Plugin** and select the `it-consulting-expert.plugin` file
-3. The 15 skills will appear in your skill list
+3. The 16 skills will appear in your skill list
 
-To verify installation, ask Claude: "List my skills" — you should see all 15 skills prefixed with `it-consulting-expert:`.
+To verify installation, ask Claude: "List my skills" — you should see all 16 skills prefixed with `it-consulting-expert:`.
 
 ---
 
@@ -52,11 +52,11 @@ To verify installation, ask Claude: "List my skills" — you should see all 15 s
 
 The fastest path from "we received an RFP" to "proposal submitted":
 
-**Step 1 — Upload the RFP to NotebookLM**
+**Step 1 — Set up the RFP Notebook**
 
-Tell Claude: *"Create a NotebookLM notebook for [Client Name]'s RFP and add this document"*
+> "Set up a notebook for [Client Name]'s RFP and run the full extraction"
 
-Or upload manually at [notebooklm.google.com](https://notebooklm.google.com) and tell Claude which notebook to use.
+This triggers `rfp-notebook`, which creates the notebook, uploads all sources, runs 26 extraction queries, and produces a **Structured RFP Brief** — the canonical reference for all downstream skills.
 
 **Step 2 — Assess the opportunity**
 
@@ -80,7 +80,7 @@ Generates a 15-slide pitch deck and Q&A preparation document for the proposal de
 
 ## Engagement Lifecycle
 
-The 15 skills map to four phases of a consulting engagement, plus a cross-cutting quality gate. Use them in order, or independently as needed.
+The 16 skills map to four phases of a consulting engagement, plus a cross-cutting quality gate and a foundational notebook management layer. Use them in order, or independently as needed.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -91,7 +91,11 @@ The 15 skills map to four phases of a consulting engagement, plus a cross-cuttin
 ├──────────┼──────────────┼───────────────┼──────────────────────┤
 │          │              │               │                      │
 │ rfp-     │ create-      │ progress-     │ maintenance-         │
-│ analysis │ proposal     │ report        │ proposal             │
+│ notebook │ proposal     │ report        │ proposal             │
+│ (Step 0) │              │               │                      │
+│          │              │               │                      │
+│ rfp-     │              │               │                      │
+│ analysis │              │               │                      │
 │          │              │               │                      │
 │          │ team-        │ change-       │ lessons-             │
 │          │ composition  │ request       │ learned              │
@@ -124,6 +128,36 @@ The 15 skills map to four phases of a consulting engagement, plus a cross-cuttin
 
 ## Skills Reference
 
+### Foundation Layer
+
+#### `rfp-notebook` — NotebookLM Engagement Setup (RFPノートブック管理) ⭐ Step 0
+
+**Purpose:** Set up, manage, and extract structured data from NotebookLM notebooks for consulting engagements. This is the automated "Step 0" that all other skills depend on.
+
+**Trigger phrases:**
+- "Set up a notebook for this RFP", "RFPのノートブックを作成"
+- "Upload RFP to NotebookLM", "RFP資料をアップロード"
+- "Extract requirements from the RFP", "要件を抽出", "Run RFP extraction"
+- "Create an RFP briefing", "RFPブリーフィング作成"
+- "Add amendment to notebook", "追加資料をノートブックに追加"
+- "Which notebook has the RFP?", "Manage engagement notebooks"
+
+**What it produces:**
+- NotebookLM notebook created with naming convention (`RFP - [Client] - [Project]`)
+- All sources uploaded and verified ready (RFP + appendices + Q&A + amendments)
+- 26 standard extraction queries across 8 categories (Overview, Requirements, Timeline, Budget, Technical, Team, Evaluation, Risks)
+- **Structured RFP Brief** — the canonical reference document that all downstream skills consume
+- Gaps & Questions list for client clarification
+- Amendment impact reports for incremental updates
+- Multi-engagement notebook dashboard
+
+**How it works:** Creates a notebook, uploads all source documents, waits for processing, then runs a comprehensive 26-query extraction. The output is a structured RFP Brief with `[RFP]` / `[Proposed]` / `[RFP+]` grounding labels and full citation traceability. All other skills reference this brief instead of re-querying NotebookLM independently.
+
+**Example:**
+> "I just received an RFP from Toyota for a DX platform. Create a notebook, upload the RFP and its 3 appendices, and run the full extraction."
+
+---
+
 ### Pre-Proposal Phase
 
 #### `rfp-analysis` — Go/No-Go Assessment (案件評価)
@@ -143,7 +177,7 @@ The 15 skills map to four phases of a consulting engagement, plus a cross-cuttin
 - Polite decline template in Japanese keigo (if NO-GO)
 
 **Example:**
-> "I just received an RFP from Sakura Financial Group for a payment system migration. The notebook is set up. Should we bid?"
+> "I just received an RFP from Mitsubishi UFJ for a payment system migration. The notebook is set up. Should we bid?"
 
 ---
 
@@ -166,7 +200,7 @@ The 15 skills map to four phases of a consulting engagement, plus a cross-cuttin
 **How it works:** This is the orchestrator skill. It runs 11 extraction queries against NotebookLM, then calls the other proposal-phase skills (team, effort, cost, technical, delivery) to build each section. You can run it standalone and it will produce everything, or run the component skills individually for focused work.
 
 **Example:**
-> "Create a proposal for the RFP in my 'Tanaka Corp Cloud Migration' notebook"
+> "Create a proposal for the RFP in my 'NTT Data Cloud Migration' notebook"
 
 ---
 
@@ -541,8 +575,11 @@ Every piece of information in the output must be labeled:
 ### Example 1: Complete Proposal Cycle (End-to-End)
 
 ```
-You:  "I received an RFP from Sakura Financial Group for a core banking API platform.
-       I've uploaded it to NotebookLM as 'RFP - Sakura API Platform'."
+You:  "I received an RFP from Sumitomo Mitsui for a core banking API platform.
+       Here are the RFP files."
+
+Step 0 → "Set up a notebook and run the full extraction"
+         → rfp-notebook creates notebook, uploads sources, produces Structured RFP Brief
 
 Step 1 → "Analyze this RFP and give me a Go/No-Go"
          → rfp-analysis produces: Score 4.2 — Strong GO
@@ -606,6 +643,7 @@ You:  "The client keeps asking for small changes without CRs.
 
 | Skill | Primary Output | Format |
 |-------|---------------|--------|
+| rfp-notebook | Structured RFP Brief + Gaps list | .md |
 | rfp-analysis | Go/No-Go assessment report | .docx |
 | create-proposal | Full consulting proposal | .docx |
 | team-composition | Organization chart + staffing plan | .docx |
@@ -644,7 +682,9 @@ Enterprise (Fortune 500, 大企業), mid-market (中堅企業), and startup enga
 
 ## Tips & Best Practices
 
-**Start with rfp-analysis.** Even when you're confident about a bid, the structured scoring often reveals risks you'd otherwise miss. A 15-minute Go/No-Go saves weeks of wasted proposal effort on bad deals.
+**Always start with rfp-notebook.** Before any analysis or proposal work, run the full extraction. The structured RFP Brief it produces is consumed by every other skill, ensuring consistency and preventing each skill from independently re-querying NotebookLM.
+
+**Then run rfp-analysis.** Even when you're confident about a bid, the structured scoring often reveals risks you'd otherwise miss. A 15-minute Go/No-Go saves weeks of wasted proposal effort on bad deals.
 
 **Let create-proposal orchestrate.** Rather than running each skill separately, start with create-proposal. It queries NotebookLM comprehensively and calls the sub-skills in the right order. Run individual skills only when you need to iterate on a specific section.
 
@@ -662,6 +702,6 @@ Enterprise (Fortune 500, 大企業), mid-market (中堅企業), and startup enga
 
 ## Version
 
-- Plugin version: 1.2.0
-- Skills: 15
-- Author: thanhpt_25
+- Plugin version: 1.3.0
+- Skills: 16
+- Author: Neo
