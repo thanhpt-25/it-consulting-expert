@@ -1,0 +1,105 @@
+{
+  "currency": "JPY",
+  "labor": [
+    {
+      "role": "PM",
+      "seniority": "expert",
+      "rate": 1800000,
+      "mm": 18
+    },
+    {
+      "role": "TL",
+      "seniority": "senior",
+      "rate": 1300000,
+      "mm": 18
+    },
+    {
+      "role": "BA",
+      "seniority": "mid-senior",
+      "rate": 1000000,
+      "mm": 12
+    },
+    {
+      "role": "SE",
+      "seniority": "mid",
+      "rate": 800000,
+      "mm": 42
+    },
+    {
+      "role": "PG",
+      "seniority": "mid-junior",
+      "rate": 600000,
+      "mm": 30
+    },
+    {
+      "role": "QA",
+      "seniority": "mid",
+      "rate": 650000,
+      "mm": 20
+    },
+    {
+      "role": "INFRA",
+      "seniority": "senior",
+      "rate": 1100000,
+      "mm": 16
+    },
+    {
+      "role": "DATA",
+      "seniority": "mid-senior",
+      "rate": 950000,
+      "mm": 8
+    },
+    {
+      "role": "UX",
+      "seniority": "mid",
+      "rate": 750000,
+      "mm": 8
+    },
+    {
+      "role": "EDI (sub)",
+      "seniority": "senior",
+      "rate": 1000000,
+      "mm": 6
+    }
+  ],
+  "non_labor": [
+    {
+      "category": "infra",
+      "item": "AWS (dev/stg/prod)",
+      "monthly": 600000,
+      "months": 18
+    },
+    {
+      "category": "infra",
+      "item": "CI/CD + monitoring",
+      "monthly": 100000,
+      "months": 18
+    },
+    {
+      "category": "license",
+      "item": "Dev tools / IDE",
+      "monthly": 50000,
+      "months": 18
+    },
+    {
+      "category": "travel",
+      "item": "出張費",
+      "one_time": 2000000
+    },
+    {
+      "category": "other",
+      "item": "Data migration tools",
+      "one_time": 1500000
+    }
+  ],
+  "mgmt_fee_rate": 0.0,
+  "pricing": {
+    "model": "fixed",
+    "risk_premium": 0.06
+  },
+  "budget": {
+    "amount": 200000000,
+    "basis": "tax_excluded",
+    "source": "RFP §6.4 p.25"
+  }
+}

@@ -10,8 +10,6 @@ description: >
   "提案可否判断", and any request to evaluate an RFP before committing resources.
   This skill should run BEFORE create-proposal — it's the gatekeeper that prevents
   wasting effort on unwinnable or unprofitable bids.
-metadata:
-  version: "0.1.0"
 ---
 
 # RFP Analysis & Go/No-Go Assessment (案件評価・提案可否判断)
@@ -24,50 +22,37 @@ In Japanese SIer consulting, proposal effort is expensive — a serious bid can 
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement
 
-The RFP must be in NotebookLM before analysis:
+Follow `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`: run `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`;
+no workspace → `engagement-init`; Brief missing or stale → `rfp-notebook` first. Do not extract the RFP here.
+
+### Step 1: Read the assessment inputs from the Brief
+
+Everything the Go/No-Go needs is already in `00-rfp-brief.json`:
+
+| Assessment input | Brief field |
+|---|---|
+| Deal basics, deadline | `client`, `project`, `timeline.proposal_submission`, `commercial.budget` |
+| Scope and complexity | `overview.scope_in`, `functional_requirements`, `integrations`, `data_migration` |
+| Mandatory qualifications | `evaluation.mandatory_qualifications` |
+| Evaluation criteria and weights | `evaluation.criteria` |
+| Technology requirements | `constraints`, `nonfunctional_requirements` |
+| Contract structure | `commercial.pricing_model`, `commercial.payment_terms`, `contract_terms` |
+| Penalties and unusual risk | `contract_terms`, `risks` |
+
+Then `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for rfp-analysis`. One signal is rarely in the
+Brief and is worth a direct query when the notebook is set — incumbency:
 
 ```bash
-notebooklm list --json
-notebooklm use <notebook_id>
-notebooklm source list --json
+notebooklm ask "Are there any references to an incumbent vendor, current system provider, or signals about competitive landscape?" --json --notebook <notebook_id>
 ```
 
-### Step 1: Extract Assessment Dimensions
-
-Run these queries to build the evaluation picture:
-
-```bash
-# Deal basics
-notebooklm ask "What is the project name, client name, estimated value, and submission deadline?" --json
-
-# Scope and complexity
-notebooklm ask "Summarize the overall project scope, scale, and technical complexity" --json
-
-# Mandatory qualifications
-notebooklm ask "What mandatory qualifications, certifications, past experience, or eligibility requirements does the RFP specify? List ALL must-have criteria" --json
-
-# Evaluation criteria and weights
-notebooklm ask "How will proposals be evaluated? What scoring criteria, weights, or selection process does the client describe?" --json
-
-# Technology requirements
-notebooklm ask "What specific technologies, platforms, or technical capabilities are required?" --json
-
-# Timeline
-notebooklm ask "What is the project timeline, go-live date, and any interim milestones?" --json
-
-# Contract structure
-notebooklm ask "What contract type, pricing model, payment terms, or commercial structure does the RFP specify?" --json
-
-# Incumbent and competitive signals
-notebooklm ask "Are there any references to an incumbent vendor, current system provider, or signals about competitive landscape?" --json
-
-# Penalties and risks
-notebooklm ask "What penalty clauses, liquidated damages, warranty obligations, or unusual risk terms are mentioned?" --json
-```
+Write whatever you learn back into the Brief (Step 6 of the handoff contract).
 
 ### Step 2: Score Each Dimension
+
+**Weights are defined once, in `shared/policy.json` (`rubric`). Do not hardcode weights here or in any worked example.**
 
 Evaluate on a 1-5 scale across these dimensions:
 
@@ -117,29 +102,30 @@ Evaluate on a 1-5 scale across these dimensions:
 | Assessment Date | [today] |
 | Assessed By | [user] |
 
-**Scoring Matrix:**
+**Scoring — computed, not typed.** Write `inputs/go-nogo.json` with a 1–5 score *and a one-line rationale*
+for each of the six dimensions, every mandatory qualification from the Brief with `met: true | false |
+"workaround"` and its evidence, and the conditions a conditional GO depends on:
 
-| Dimension | Score (1-5) | Weight | Weighted Score | Key Factors |
-|-----------|------------|--------|----------------|-------------|
-| Strategic Fit | | 15% | | |
-| Capability Match | | 25% | | |
-| Win Probability | | 25% | | |
-| Profitability | | 15% | | |
-| Delivery Risk | | 10% | | |
-| Resource Availability | | 10% | | |
-| **Total** | | 100% | **X.X / 5.0** | |
+```json
+{"scores": {"strategic_fit": 4, "capability_match": 4, "win_probability": 3,
+            "profitability": 3, "delivery_risk": 3, "resource_availability": 3},
+ "rationale": {"strategic_fit": "製造業はターゲット業界", "capability_match": "…", "win_probability": "…",
+               "profitability": "…", "delivery_risk": "…", "resource_availability": "…"},
+ "mandatory": [{"requirement": "ISMS認証取得", "met": true, "evidence": "ISO27001 cert no. …"}],
+ "conditions": ["EDIパートナーの稼働確認"]}
+```
 
-**Decision Thresholds:**
-- **≥ 4.0**: Strong GO — prioritize this bid
-- **3.0 - 3.9**: Conditional GO — proceed if specific conditions are met (list them)
-- **2.0 - 2.9**: Likely NO-GO — proceed only with executive sponsor approval
-- **< 2.0**: Definite NO-GO — decline politely
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" score
+```
 
-**Qualification Checklist (必須要件チェック):**
-| Mandatory Requirement | We Meet It? | Evidence / Gap |
-|----------------------|-------------|----------------|
+The engine applies the canonical weights and thresholds from `shared/policy.json`, forces
+DEFINITE_NO_GO when any mandatory requirement is unmet, and writes `01-go-nogo.json` / `.md`. Paste
+its matrix into the assessment sheet; never retype or adjust the total. If you disagree with the
+verdict, change a *score* and its rationale — not the arithmetic.
 
-If ANY mandatory requirement is unmet with no workaround, the recommendation is automatic NO-GO regardless of score.
+"Profitability" must reflect real numbers when they exist: if `05-cost.json` has been computed, score
+it from that file's `gross_margin` and `budget_fit`, not from an impression.
 
 ### Step 4: Risk and Opportunity Analysis
 

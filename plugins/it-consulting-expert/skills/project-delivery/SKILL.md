@@ -9,31 +9,45 @@ description: >
   or needs to define how a project will be executed, managed, and delivered. Also
   trigger for "SDLC", "waterfall plan", "agile delivery", "hybrid methodology",
   "進捗管理", "WBS schedule".
-metadata:
-  version: "0.2.0"
 ---
 
 # Project Delivery Planning
 
 Define how an IT consulting project will be executed, **grounded in RFP/RFQ delivery requirements from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-The RFP often specifies methodology preferences, milestone expectations, reporting requirements, and governance structures. Extract these before proposing any delivery plan — proposing Agile when the client mandates Waterfall (or vice versa) is a fast path to rejection.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Delivery Requirements from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.methodology`, `team_process.governance`, `timeline`, `nonfunctional_requirements` (quality targets).
+4. **Upstream files:** `03-estimate.json` (phase effort) and `04-team.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for project-delivery`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "Does the client specify a development methodology — waterfall, agile, hybrid, or other?" --json
-notebooklm ask "What milestones, phase gates, or checkpoint dates does the client expect?" --json
-notebooklm ask "What reporting, status updates, or governance meetings does the client require?" --json
-notebooklm ask "What quality assurance, testing, or acceptance criteria does the client define?" --json
-notebooklm ask "What risk management or escalation procedures does the client expect?" --json
-notebooklm ask "What document deliverables does the client require at each phase?" --json
-notebooklm ask "What communication channels, frequency, or stakeholder engagement does the client expect?" --json
-notebooklm ask "What change management or change request process does the client define?" --json
+notebooklm ask "Does the client specify a development methodology — waterfall, agile, hybrid, or other?" --json --notebook <notebook_id>
+notebooklm ask "What milestones, phase gates, or checkpoint dates does the client expect?" --json --notebook <notebook_id>
+notebooklm ask "What reporting, status updates, or governance meetings does the client require?" --json --notebook <notebook_id>
+notebooklm ask "What quality assurance, testing, or acceptance criteria does the client define?" --json --notebook <notebook_id>
+notebooklm ask "What risk management or escalation procedures does the client expect?" --json --notebook <notebook_id>
+notebooklm ask "What document deliverables does the client require at each phase?" --json --notebook <notebook_id>
+notebooklm ask "What communication channels, frequency, or stakeholder engagement does the client expect?" --json --notebook <notebook_id>
+notebooklm ask "What change management or change request process does the client define?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Select Methodology
@@ -53,6 +67,10 @@ notebooklm ask "What change management or change request process does the client
 ### Step 2: Define Phase Plan
 
 **For Waterfall / Hybrid** (anchored to RFP milestones):
+
+Phase effort comes from `03-estimate.json` → `phases` (engine output). Convert effort to duration with the
+team plan in `04-team.json`, and anchor dates to the Brief's `timeline` milestones. The shares below are only
+a sanity reference — the authoritative typical ranges are in `shared/policy.json` (`estimation.phases`).
 
 | Phase | Japanese Name | Duration % | RFP Milestone | Gate Criteria |
 |-------|-------------|-----------|---------------|---------------|
@@ -111,7 +129,10 @@ Produce a project delivery plan containing:
 4. Quality assurance plan (covering RFP quality requirements)
 5. Risk register (grounded in actual project scope)
 6. Communication plan (matching RFP stakeholder expectations)
-7. Change management process
+7. Change management process — baseline and ledger handled by `change-request` (`sier cr`)
+
+Save it as `06-delivery-plan.md` in the engagement workspace. SPI/CPI and quality thresholds quoted in the
+plan must match `shared/policy.json` (`evm`) — the same thresholds progress reports will be measured against.
 
 ## Key Principles
 

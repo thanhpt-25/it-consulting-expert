@@ -88,33 +88,33 @@ Use these for complex or specialized RFPs:
 
 ```bash
 # Initial broad query
-notebooklm ask "What are the main functional modules in this system?" --json -n <notebook_id>
+notebooklm ask "What are the main functional modules in this system?" --json --notebook <notebook_id>
 # → returns conversation_id
 
 # Follow up on each module
-notebooklm ask "For the [module name] module, what are the detailed functional requirements?" --json -n <notebook_id> -c <conversation_id>
+notebooklm ask "For the [module name] module, what are the detailed functional requirements?" --json --notebook <notebook_id> -c <conversation_id>
 ```
 
 ### Comparison Queries (for replacement/migration projects)
 
 ```bash
-notebooklm ask "Compare what the current system does vs. what the new system is expected to do. What are the gaps?" --json -n <notebook_id>
-notebooklm ask "What functionality from the current system should NOT be carried over to the new system?" --json -n <notebook_id>
+notebooklm ask "Compare what the current system does vs. what the new system is expected to do. What are the gaps?" --json --notebook <notebook_id>
+notebooklm ask "What functionality from the current system should NOT be carried over to the new system?" --json --notebook <notebook_id>
 ```
 
 ### Hidden Requirements Detection
 
 ```bash
-notebooklm ask "Are there any implied requirements that are not explicitly stated but can be inferred from the context?" --json -n <notebook_id>
-notebooklm ask "What does the RFP assume the vendor already knows or has experience with?" --json -n <notebook_id>
-notebooklm ask "Are there contradictions or inconsistencies between different sections of the RFP?" --json -n <notebook_id>
+notebooklm ask "Are there any implied requirements that are not explicitly stated but can be inferred from the context?" --json --notebook <notebook_id>
+notebooklm ask "What does the RFP assume the vendor already knows or has experience with?" --json --notebook <notebook_id>
+notebooklm ask "Are there contradictions or inconsistencies between different sections of the RFP?" --json --notebook <notebook_id>
 ```
 
 ### Competitive Intelligence
 
 ```bash
-notebooklm ask "Does the RFP hint at the client's previous vendor, current dissatisfaction, or reason for re-procurement?" --json -n <notebook_id>
-notebooklm ask "Are there requirements that seem tailored to a specific vendor's capabilities?" --json -n <notebook_id>
+notebooklm ask "Does the RFP hint at the client's previous vendor, current dissatisfaction, or reason for re-procurement?" --json --notebook <notebook_id>
+notebooklm ask "Are there requirements that seem tailored to a specific vendor's capabilities?" --json --notebook <notebook_id>
 ```
 
 ---

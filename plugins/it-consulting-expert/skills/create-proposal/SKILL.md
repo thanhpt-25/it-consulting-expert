@@ -9,88 +9,44 @@ description: >
   transformation projects. Also trigger when the user mentions "proposal",
   "quotation", "見積書", "提案", or wants to put together a client-facing
   project offer document — even if they don't say "proposal" explicitly.
-metadata:
-  version: "0.2.0"
 ---
 
 # IT Consulting Proposal Generator
 
 Generate professional IT consulting proposals following Japanese SIer (System Integrator) standards, **grounded in customer RFP/RFQ documents stored in NotebookLM**.
 
-## Critical Rule: NotebookLM as Single Source of Truth
+## Critical rule: the Brief is the single source of truth
 
-Every client-specific fact in the proposal MUST come from querying the NotebookLM notebook that contains the customer's RFP/RFQ. Do not invent requirements, timelines, budgets, or technical constraints. If the RFP doesn't address a topic, explicitly mark the section as "Proposed (not specified in RFP)" so the client knows what's your recommendation vs. their stated need.
+Every client-specific fact in the proposal comes from the engagement's RFP Brief
+(`00-rfp-brief.json`), which `rfp-notebook` extracted from NotebookLM with citations. Every number
+comes from an engine artifact (`03-estimate`, `05-cost`, `01-go-nogo`). Do not invent requirements,
+dates, budgets or constraints, and do not retype a computed figure. Where the RFP is silent, say so
+and label the content `[Proposed]`.
 
-Read `references/notebooklm-integration.md` for the full integration guide including query patterns, citation rules, and grounding rules.
+**Running the whole presale cycle?** Use the `presale-team` skill. It runs the architect, estimator,
+staffing planner and cost controller as parallel agents, then calls this skill to write — and the
+review board after it. Use this skill directly to write or revise the proposal document itself.
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM (MANDATORY)
+### Step 0: Load the engagement
 
-Before any proposal work, establish the data source:
+Follow `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`. Run `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`:
 
-1. Ask the user which NotebookLM notebook contains the client's RFP/RFQ
-2. List available notebooks:
-   ```bash
-   notebooklm list --json
-   ```
-3. Set context to the target notebook:
-   ```bash
-   notebooklm use <notebook_id>
-   ```
-4. Verify sources are ready:
-   ```bash
-   notebooklm source list --json
-   ```
-   All sources must show `"status": "ready"`. If not, wait with `notebooklm source wait`.
+- No workspace → `engagement-init`. Brief missing or stale → `rfp-notebook`. Do not extract the RFP here.
+- Read what exists: `00-rfp-brief.json`, `01-go-nogo.json`, `02-architecture.md`, `03-estimate.json`,
+  `04-team.json`, `05-cost.json`, `06-delivery-plan.md`.
+- For each missing section input, run the owning skill first (see "Where each section's content comes from" below) — or, if the user wants a
+  draft now, write that section from the Brief and mark it `【未確定 — <skill> 未実行】` so nobody mistakes
+  it for a computed figure.
+- `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for create-proposal` — query NotebookLM only for those.
 
-If the user hasn't uploaded the RFP yet, help them:
-```bash
-notebooklm create "RFP - [Client Name] - [Project Name]" --json
-notebooklm source add ./rfp-document.pdf --json
-notebooklm source wait <source_id> -n <notebook_id> --timeout 600
-```
+### Step 1: Confirm the deliverables the client asked for
 
-### Step 1: Extract RFP Requirements from NotebookLM
-
-Run these extraction queries to build a complete picture. Use `--json` on every query to get citations:
-
-```bash
-# Project overview
-notebooklm ask "What is the project name, client name, and overall objective described in this RFP?" --json
-
-# Scope
-notebooklm ask "List all items that are in-scope and out-of-scope for this project" --json
-
-# Functional requirements
-notebooklm ask "List all functional requirements, features, or capabilities the client expects" --json
-
-# Non-functional requirements
-notebooklm ask "List all non-functional requirements: performance targets, security requirements, availability SLAs, scalability needs, compliance standards" --json
-
-# Technical constraints
-notebooklm ask "What technology constraints, platform requirements, or integration needs does the client specify?" --json
-
-# Timeline and milestones
-notebooklm ask "What timeline, deadlines, milestones, or phase expectations does the client state?" --json
-
-# Budget
-notebooklm ask "What budget range, cost constraints, or pricing expectations are mentioned?" --json
-
-# Evaluation criteria
-notebooklm ask "How will the client evaluate proposals? What are the scoring criteria or selection factors?" --json
-
-# Team / methodology preferences
-notebooklm ask "Does the client specify team size, roles, development methodology preferences, or delivery model requirements?" --json
-
-# Deliverables
-notebooklm ask "What specific deliverables, documents, or artifacts does the client expect?" --json
-
-# Current state
-notebooklm ask "Describe the client's current IT systems, infrastructure, or business processes mentioned in the document" --json
-```
-
-Store all extracted data before proceeding. Every answer comes with citations — use them.
+From the Brief: `evaluation.submission_requirements` (format, page limit, mandatory sections, copies,
+delivery method), `evaluation.criteria` (the order evaluators read in — mirror it), and the
+requirement ids (`FR-*`, `NFR-*`, `INT-*`) the compliance matrix must cover. A missing mandatory
+section or an over-length document can disqualify a bid before anyone reads it.
 
 ### Step 2: Gather Additional Inputs from User
 
@@ -143,16 +99,17 @@ Write each section using this structure. For every section, the source of each c
 - Reference the `project-delivery` skill for detailed methodology
 
 **6. Team Structure (体制図)**
-- If RFP specifies team requirements → address them directly
-- Reference the `team-composition` skill for full team planning
+- From `04-team.json` / `04-team.md`; RFP staffing requirements (`team_process.staffing`) addressed explicitly
+- Org chart: use the `drawio` skill when available, otherwise mermaid
 
 **7. Schedule (スケジュール)**
 - Anchor to any RFP-stated deadlines or milestones
 - Build timeline around RFP constraints, not generic defaults
 
 **8. Cost Estimation (費用見積)**
-- If RFP states budget → design within it
-- Reference the `cost-estimation` skill for detailed breakdown
+- Copy the tables from `05-cost.md` verbatim — price 税抜/税込, payment schedule, assumptions. Never retype or round them.
+- If `05-cost.json` → `budget_fit.status` is `over`, stop and tell the user before writing: a proposal over the
+  RFP budget needs a decision (scope reduction, phasing, or a deliberate overrun with justification), not prose
 
 **9. Deliverables List (納品物一覧)**
 - Start with RFP-required deliverables
@@ -168,8 +125,9 @@ Write each section using this structure. For every section, the source of each c
 - Propose standard terms for anything not specified
 
 **12. Compliance Matrix (RFP対応表)** — IMPORTANT
-- Create a traceability table mapping EVERY RFP requirement to the proposal section that addresses it
-- This demonstrates thoroughness and makes evaluation easier for the client
+- One row per requirement id in the Brief (`FR-*`, `NFR-*`, `INT-*`, mandatory qualifications) — every id, no exceptions
+- Before finishing, check coverage: every id in the Brief appears in the matrix, and every matrix row names a section
+  that exists. Japanese evaluators check this table line by line; a missing id is a lost point
 
 | RFP Requirement ID | Requirement | Proposal Section | How Addressed |
 |--------------------|-------------|-----------------|---------------|
@@ -194,15 +152,20 @@ Throughout the proposal, use these labels to distinguish source vs. recommendati
 
 These labels appear in internal drafts. Remove them from the final client-facing document, but retain the compliance matrix (section 12) which serves the same traceability purpose in polished form.
 
-## Cross-Skill Integration
+## Where each section's content comes from
 
-This skill orchestrates other skills in the plugin. When invoking them, pass the NotebookLM notebook ID so they can also query the RFP:
+| Section | Source file | Owning skill |
+|---|---|---|
+| 1–2 Summary, background | `00-rfp-brief.json`, `01-go-nogo.json` (win themes) | rfp-notebook, rfp-analysis |
+| 3 Solution | `02-architecture.md` | technical-solution |
+| 5, 7 Approach, schedule | `06-delivery-plan.md` | project-delivery |
+| 6 Team | `04-team.json` | team-composition |
+| 8 Cost | `05-cost.md` (engine output) | cost-estimation |
+| Appendix WBS | `03-estimate.md` (engine output) | effort-estimation |
+| 12 Compliance matrix | requirement ids in the Brief | this skill |
 
-- `team-composition` — pass RFP team requirements
-- `effort-estimation` — pass RFP scope and feature list
-- `cost-estimation` — pass RFP budget constraints
-- `technical-solution` — pass RFP technical requirements and constraints
-- `project-delivery` — pass RFP methodology and timeline requirements
+Save the document to `artifacts/proposal.docx` (docx skill) so `sier status` and the review board find it.
+Before submission, run the `proposal-review` skill and `python3 "${CLAUDE_PLUGIN_ROOT}/sier" verify`.
 
 For the NotebookLM integration guide, read `references/notebooklm-integration.md`.
 For deliverable templates, read `references/deliverables-template.md`.

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "client": "ABC製造株式会社",
+  "project": "CRMクラウド移行",
+  "generated_at": "2026-07-01",
+  "source_tier": 3,
+  "notebook_id": null,
+  "sources": [{"id": "S1", "title": "RFP-ABC-CRM-2026.pdf (simulated)", "type": "pdf"}],
+  "overview": {
+    "background": {"text": "現行Oracle CRMの保守期限切れに伴う刷新", "label": "RFP", "citation": "RFP §1.2 p.3"},
+    "objectives": [{"text": "営業・サポート800名の業務効率向上", "label": "RFP", "citation": "RFP §1.3 p.3"}],
+    "scope_in": [
+      {"text": "顧客データ50万件の移行", "label": "RFP", "citation": "RFP §3.4 p.14"},
+      {"text": "Web＋モバイルUI（800ユーザー）", "label": "RFP", "citation": "RFP §3.1 p.10"}
+    ],
+    "scope_out": [],
+    "scope_ambiguous": [{"text": "EDIパートナー数と形式", "label": "RFP", "citation": "RFP §3.5 p.16"}],
+    "success_criteria": [{"text": "18ヶ月以内の本番稼働", "label": "RFP", "citation": "RFP §5.1 p.22"}]
+  },
+  "functional_requirements": [
+    {"id": "FR-001", "text": "顧客・商談・活動管理", "module": "CRM core", "priority": "must", "label": "RFP", "citation": "RFP §3.1 p.10"},
+    {"id": "FR-002", "text": "モバイル対応UI", "module": "UI", "priority": "must", "label": "RFP", "citation": "RFP §3.1 p.11"},
+    {"id": "FR-003", "text": "顧客データ移行（50万件）", "module": "Migration", "priority": "must", "label": "RFP", "citation": "RFP §3.4 p.14"},
+    {"id": "FR-004", "text": "SAP ERP連携", "module": "Integration", "priority": "must", "label": "RFP", "citation": "RFP §3.5 p.15"},
+    {"id": "FR-005", "text": "EDIパートナー連携", "module": "Integration", "priority": "must", "label": "RFP", "citation": "RFP §3.5 p.16"}
+  ],
+  "nonfunctional_requirements": [
+    {"id": "NFR-001", "category": "availability", "text": "可用性", "target": "99.9%", "label": "RFP", "citation": "RFP §4.1 p.18"},
+    {"id": "NFR-002", "category": "performance", "text": "応答時間", "target": "< 2秒", "label": "RFP", "citation": "RFP §4.2 p.18"},
+    {"id": "NFR-003", "category": "compliance", "text": "ISMS/ISO27001準拠", "target": "必須", "label": "RFP", "citation": "RFP §4.5 p.20"}
+  ],
+  "constraints": [{"text": "オンプレミスまたはハイブリッド（AWS推奨、Azure可）", "label": "RFP", "citation": "RFP §4.6 p.20"}],
+  "integrations": [
+    {"id": "INT-001", "system": "SAP ERP", "type": "batch+API", "protocol": "RFC/BAPI", "label": "RFP", "citation": "RFP §3.5 p.15"},
+    {"id": "INT-002", "system": "Salesforce Marketing Cloud", "type": "API", "protocol": "REST", "label": "RFP", "citation": "RFP §3.5 p.15"},
+    {"id": "INT-003", "system": "EDI partners", "type": "file", "protocol": "EDI", "label": "RFP", "citation": "RFP §3.5 p.16"}
+  ],
+  "data_migration": [{"text": "Oracle CRMから50万件", "label": "RFP", "citation": "RFP §3.4 p.14"}],
+  "timeline": {
+    "proposal_submission": {"date": "2026-07-31", "label": "RFP", "citation": "RFP §6.1 p.24"},
+    "go_live": {"text": "契約締結から18ヶ月", "label": "RFP", "citation": "RFP §5.1 p.22"},
+    "milestones": [{"name": "提案説明会", "date": "2026-08-15", "label": "RFP", "citation": "RFP §6.2 p.24"}]
+  },
+  "commercial": {
+    "budget": {"amount": 200000000, "basis": "tax_excluded", "label": "RFP", "citation": "RFP §6.4 p.25"},
+    "pricing_model": {"text": "一括請負", "label": "RFP", "citation": "RFP §6.4 p.25"}
+  },
+  "evaluation": {
+    "criteria": [
+      {"name": "技術提案", "weight": 40, "label": "RFP", "citation": "RFP §7.1 p.26"},
+      {"name": "実績・体制", "weight": 30, "label": "RFP", "citation": "RFP §7.1 p.26"},
+      {"name": "価格", "weight": 30, "label": "RFP", "citation": "RFP §7.1 p.26"}
+    ],
+    "mandatory_qualifications": [{"text": "ISMS認証取得", "label": "RFP", "citation": "RFP §7.3 p.27"}]
+  },
+  "team_process": {"methodology": {"text": "ウォーターフォール推奨", "label": "RFP", "citation": "RFP §5.3 p.23"}},
+  "risks": [{"text": "レガシーOracleに文書化されていないビジネスロジック", "label": "Proposed"}],
+  "assumptions": [{"text": "EDI形式は2種類と想定", "label": "Proposed"}],
+  "gaps": [
+    {"id": "Q-001", "topic": "EDI", "question": "EDIパートナー数とフォーマット種別をご教示ください", "priority": "high", "blocks": ["effort-estimation", "technical-solution"]},
+    {"id": "Q-002", "topic": "Payment", "question": "支払条件（マイルストーン）をご指定ください", "priority": "medium", "blocks": ["cost-estimation"]}
+  ]
+}

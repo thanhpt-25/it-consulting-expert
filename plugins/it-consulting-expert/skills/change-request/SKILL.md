@@ -10,8 +10,6 @@ description: >
   Also trigger for "追加要件", "仕様変更", "additional requirements",
   "change control board", "CCB", and any request to manage scope creep
   or formal change processes.
-metadata:
-  version: "0.1.0"
 ---
 
 # Change Request Management (変更管理)
@@ -24,16 +22,30 @@ Scope creep kills SIer projects. Japanese enterprise clients expect formal chang
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-Query the original RFP for baseline scope and change management expectations:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** scope (`overview.scope_in` / `scope_out`), requirements, `contract_terms`.
+4. **Upstream files:** `engagement.json` → `baseline` and the ledger `_state/cr-ledger.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for change-request`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "What is the original project scope, deliverables list, and acceptance criteria?" --json
-notebooklm ask "Does the RFP specify a change management process, approval authority, or change control procedures?" --json
-notebooklm ask "What are the contractual terms regarding scope changes, additional costs, and timeline extensions?" --json
-notebooklm ask "What is the original project timeline with milestones and deadlines?" --json
-notebooklm ask "What is the original budget and pricing structure (fixed price, T&M, hybrid)?" --json
+notebooklm ask "What is the original project scope, deliverables list, and acceptance criteria?" --json --notebook <notebook_id>
+notebooklm ask "Does the RFP specify a change management process, approval authority, or change control procedures?" --json --notebook <notebook_id>
+notebooklm ask "What are the contractual terms regarding scope changes, additional costs, and timeline extensions?" --json --notebook <notebook_id>
+notebooklm ask "What is the original project timeline with milestones and deadlines?" --json --notebook <notebook_id>
+notebooklm ask "What is the original budget and pricing structure (fixed price, T&M, hybrid)?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Change Request Identification
@@ -146,31 +158,26 @@ Approval authority thresholds (typical):
 - Director approval: ¥1M–¥5M or 5–15 days impact
 - Executive approval: > ¥5M or > 15 days or go-live date change
 
-### Step 4: Cumulative Change Tracker (変更累積管理表)
+### Step 4: Cumulative Change Tracker (変更累積管理表) — computed
 
-Maintain a running ledger of all changes against the original baseline:
+Price the change itself through the engine so the CR's numbers are as defensible as the original bid:
+estimate the added work as WBS items and run `sier estimate --in <cr-estimate.json> --no-ws`, then
+`sier cost --in <cr-cost.json> --no-ws` with the same rate card and pricing model as the contract.
 
-**Cumulative Impact Dashboard:**
+Record the CR in the ledger and produce the cumulative report:
 
-| Metric | Original Baseline | Cumulative Changes | Current Forecast | Variance |
-|--------|-------------------|-------------------|-----------------|----------|
-| Timeline | X months | +Y days | X months + Y days | +Z% |
-| Budget | ¥XX,XXX,XXX | +¥X,XXX,XXX | ¥XX,XXX,XXX | +Z% |
-| Scope (requirements) | N items | +X / -Y | N+X-Y items | +Z% |
-| Effort (人月) | XX 人月 | +X 人月 | XX+X 人月 | +Z% |
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" cr add --in cr-001.json   # {"id","title","status","cost_delta","effort_delta_mm","schedule_delta_days","requirements_delta","go_live_changes"}
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" cr report
+```
 
-**Change Log:**
+The report measures **approved** changes against `engagement.json` → `baseline`, shows what pending CRs
+would add, applies the yellow/red gates, and names the approval authority each CR needs (PM / Director /
+Executive by cost, schedule days and go-live impact). All thresholds come from `shared/policy.json`.
+Re-adding a CR with the same id updates it (e.g. proposed → approved).
 
-| CR# | Date | Description | Status | Schedule | Cost | Requester |
-|-----|------|-------------|--------|----------|------|-----------|
-| CR-2024-001 | | | Approved | +3 days | +¥500K | Client |
-| CR-2024-002 | | | Rejected | — | — | Internal |
-| CR-2024-003 | | | Pending | +5 days | +¥1.2M | Client |
-
-**Warning Thresholds:**
-- 🟡 Yellow: Cumulative changes exceed 10% of original baseline (budget or timeline)
-- 🔴 Red: Cumulative changes exceed 20% — trigger contract amendment discussion
-- ⚠️ Critical: Cumulative changes affect go-live date — executive escalation required
+If the baseline isn't set yet, set it first (see `engagement-init`, "After award") — a ledger without a
+baseline can count changes but cannot tell you when they add up to a new contract.
 
 ### Step 5: Scope Creep Prevention
 

@@ -9,8 +9,6 @@ description: >
   against original plans. Also trigger for "反省会", "改善提案", "ふりかえり",
   "planned vs actual analysis", and any request to capture and document
   project learnings for organizational improvement.
-metadata:
-  version: "0.1.0"
 ---
 
 # Lessons Learned (案件振り返り)
@@ -23,17 +21,31 @@ Japanese SIer culture values continuous improvement (改善). A thorough lessons
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-Query the original RFP and project documentation for baseline data:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** the whole Brief — it is the original promise you are reviewing against.
+4. **Upstream files:** `engagement.json` → `baseline`, `03-estimate.json`, `05-cost.json`, `progress/` (EVM and CR reports), `_state/cr-ledger.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for lessons-learned`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "What were the original project objectives, scope, and success criteria?" --json
-notebooklm ask "What was the original timeline with milestones and delivery dates?" --json
-notebooklm ask "What was the original budget and effort estimate?" --json
-notebooklm ask "What were the key technical requirements and architecture decisions?" --json
-notebooklm ask "What team structure and staffing was originally proposed?" --json
-notebooklm ask "What were the identified risks in the original proposal?" --json
+notebooklm ask "What were the original project objectives, scope, and success criteria?" --json --notebook <notebook_id>
+notebooklm ask "What was the original timeline with milestones and delivery dates?" --json --notebook <notebook_id>
+notebooklm ask "What was the original budget and effort estimate?" --json --notebook <notebook_id>
+notebooklm ask "What were the key technical requirements and architecture decisions?" --json --notebook <notebook_id>
+notebooklm ask "What team structure and staffing was originally proposed?" --json --notebook <notebook_id>
+notebooklm ask "What were the identified risks in the original proposal?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Project Outcome Data
@@ -187,8 +199,24 @@ For organizational learning, track estimation accuracy over time:
 - 0.7–0.8 or 1.2–1.5: Needs improvement, analyze causes
 - < 0.7 or > 1.5: Significant estimation failure, deep-dive required
 
-**Estimation improvement recommendations:**
-Based on the variance analysis, suggest calibration factors for future projects of similar type/scale.
+**Feed the result back into future estimates.** Record the closed project in the firm's calibration file —
+this is what turns a retrospective into better bids:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" calibrate add --in calibration-record.json
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" calibrate show
+```
+
+```json
+{"project": "ABC-CRM", "project_type": "crm_migration", "estimated_mm": 175.8, "actual_mm": 201.0,
+ "estimated_cost": 233250000, "actual_cost": 251000000, "planned_margin": 0.20, "actual_margin": 0.13,
+ "closed": "2027-12-20"}
+```
+
+Take `estimated_mm` from `03-estimate.json` → `recommended_mm` and `estimated_cost` from `05-cost.json`
+(never from memory); actuals from the project's books. Use the same `project_type` label the estimate used —
+`effort-estimation` looks history up by it, and from the next bid of that type onward the estimate shows the
+firm's median actual/estimate ratio next to the raw figure.
 
 ### Step 7: Client Feedback Summary
 

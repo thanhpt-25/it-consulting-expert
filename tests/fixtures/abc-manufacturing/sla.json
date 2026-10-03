@@ -1,0 +1,25 @@
+{
+  "project_cost": 197796000,
+  "maintenance_rate": 0.15,
+  "contract_years": 3,
+  "availability_tiers": [
+    {
+      "id": "standard",
+      "target": 99.5,
+      "window": "business_hours",
+      "claimed_downtime_minutes": 216
+    },
+    {
+      "id": "enhanced",
+      "target": 99.9,
+      "window": "24x7",
+      "claimed_downtime_minutes": 43
+    },
+    {
+      "id": "premium",
+      "target": 99.95,
+      "window": "24x7",
+      "claimed_downtime_minutes": 22
+    }
+  ]
+}

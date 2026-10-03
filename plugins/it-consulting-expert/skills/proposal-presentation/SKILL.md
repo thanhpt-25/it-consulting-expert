@@ -10,8 +10,6 @@ description: >
   create slides or talking points for presenting a proposal to the client.
   This skill should run AFTER create-proposal — it converts the full proposal
   into a focused presentation.
-metadata:
-  version: "0.1.0"
 ---
 
 # Proposal Presentation (提案プレゼン資料)
@@ -24,14 +22,28 @@ Japanese enterprise procurement typically involves a formal presentation where v
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-Query the RFP for presentation-critical information:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `evaluation.criteria` (the deck follows their order and weights), `evaluation.submission_requirements`.
+4. **Upstream files:** `artifacts/` (the proposal), `01-go-nogo.json` (win themes and risks), `05-cost.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for proposal-presentation`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "What is the proposal presentation format — time limit, number of attendees, presentation date, any format requirements?" --json
-notebooklm ask "What are the evaluation criteria and their weights for this proposal?" --json
-notebooklm ask "Who are the key decision-makers and what are their likely concerns — technical, business, or political?" --json
+notebooklm ask "What is the proposal presentation format — time limit, number of attendees, presentation date, any format requirements?" --json --notebook <notebook_id>
+notebooklm ask "What are the evaluation criteria and their weights for this proposal?" --json --notebook <notebook_id>
+notebooklm ask "Who are the key decision-makers and what are their likely concerns — technical, business, or political?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Inputs

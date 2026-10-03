@@ -2,16 +2,21 @@
 
 ## Purpose
 
-NotebookLM serves as the **single source of truth** for all proposal-related data. Customer RFP/RFQ documents are uploaded there, and every skill in this plugin must extract information from NotebookLM rather than generating content from general knowledge. This prevents hallucination and ensures proposals are grounded in actual client requirements.
+NotebookLM holds the customer's RFP/RFQ and returns cited answers. Since v2.0, **`rfp-notebook` is the only
+skill that extracts from it**: it writes the cited answers into the engagement's RFP Brief
+(`00-rfp-brief.json`), and every other skill reads the Brief and queries NotebookLM only for gaps the Brief
+records. Canonical rules: `shared/notebooklm-contract.md` in the plugin.
 
 ## Architecture
 
 ```
 Customer RFP/RFQ → User uploads to NotebookLM → Notebook becomes source of truth
                                                          ↓
-                                              Skills query via `notebooklm ask`
+                                    rfp-notebook queries via `notebooklm ask … --json --notebook <id>`
                                                          ↓
-                                              Cited answers drive proposal content
+                                     00-rfp-brief.json (cited) → every other skill
+                                                         ↓
+                                     gaps only → targeted `notebooklm ask` → written back to the Brief
 ```
 
 ## Setup Flow
@@ -28,22 +33,28 @@ If the user hasn't uploaded yet, guide them:
 
 ```bash
 notebooklm create "RFP - [Client Name] - [Project Name]" --json
-notebooklm source add ./rfp-document.pdf --json
+notebooklm source add ./rfp-document.pdf --json --notebook <notebook_id>
 notebooklm source wait <source_id> -n <notebook_id> --timeout 600
 ```
 
-### 2. Set Notebook Context
+### 2. Target the notebook explicitly on every command
 
-```bash
-notebooklm use <notebook_id>
-```
+Do **not** run `notebooklm use`. `notebooklm use` writes to a shared global context
+(`~/.notebooklm/context.json`) that concurrent agents overwrite, so pass the notebook on every
+command instead. The two flags are **not** interchangeable:
 
-Or use `-n <notebook_id>` / `--notebook <notebook_id>` on each command for parallel safety.
+| Flag | Valid on |
+|------|----------|
+| `-n <notebook_id>` | `artifact wait`, `source wait`, `research wait`, `research status`, `download *` |
+| `--notebook <notebook_id>` | every other command, including `ask`, `source add`, `source list` |
+
+Using `-n` on `ask` is a silent failure mode: it either errors or falls back to whatever `use`
+last set, which may be another engagement's notebook.
 
 ### 3. Verify Sources Are Ready
 
 ```bash
-notebooklm source list --json
+notebooklm source list --json --notebook <notebook_id>
 ```
 
 All sources must show `"status": "ready"` before querying.
@@ -56,37 +67,37 @@ Use targeted questions to extract specific information from the RFP/RFQ. Always 
 
 **Requirements extraction:**
 ```bash
-notebooklm ask "List all functional requirements mentioned in the RFP" --json
-notebooklm ask "List all non-functional requirements (performance, security, availability, scalability)" --json
-notebooklm ask "What are the mandatory technology constraints or platform requirements?" --json
+notebooklm ask "List all functional requirements mentioned in the RFP" --json --notebook <notebook_id>
+notebooklm ask "List all non-functional requirements (performance, security, availability, scalability)" --json --notebook <notebook_id>
+notebooklm ask "What are the mandatory technology constraints or platform requirements?" --json --notebook <notebook_id>
 ```
 
 **Scope extraction:**
 ```bash
-notebooklm ask "What is the project scope? What is explicitly in-scope and out-of-scope?" --json
-notebooklm ask "What are the key deliverables the client expects?" --json
-notebooklm ask "What acceptance criteria or success metrics does the client define?" --json
+notebooklm ask "What is the project scope? What is explicitly in-scope and out-of-scope?" --json --notebook <notebook_id>
+notebooklm ask "What are the key deliverables the client expects?" --json --notebook <notebook_id>
+notebooklm ask "What acceptance criteria or success metrics does the client define?" --json --notebook <notebook_id>
 ```
 
 **Timeline and budget:**
 ```bash
-notebooklm ask "What timeline or deadline does the client specify?" --json
-notebooklm ask "Is there a stated budget range or budget constraints?" --json
-notebooklm ask "What are the key milestones or phase gates the client expects?" --json
+notebooklm ask "What timeline or deadline does the client specify?" --json --notebook <notebook_id>
+notebooklm ask "Is there a stated budget range or budget constraints?" --json --notebook <notebook_id>
+notebooklm ask "What are the key milestones or phase gates the client expects?" --json --notebook <notebook_id>
 ```
 
 **Technical context:**
 ```bash
-notebooklm ask "Describe the client's current IT systems and infrastructure mentioned in the document" --json
-notebooklm ask "What integrations with existing systems are required?" --json
-notebooklm ask "What security, compliance, or regulatory requirements are mentioned?" --json
+notebooklm ask "Describe the client's current IT systems and infrastructure mentioned in the document" --json --notebook <notebook_id>
+notebooklm ask "What integrations with existing systems are required?" --json --notebook <notebook_id>
+notebooklm ask "What security, compliance, or regulatory requirements are mentioned?" --json --notebook <notebook_id>
 ```
 
 **Team and process:**
 ```bash
-notebooklm ask "What team structure, roles, or staffing requirements does the client specify?" --json
-notebooklm ask "Does the client prefer a specific development methodology (waterfall, agile, hybrid)?" --json
-notebooklm ask "What evaluation criteria will the client use to assess proposals?" --json
+notebooklm ask "What team structure, roles, or staffing requirements does the client specify?" --json --notebook <notebook_id>
+notebooklm ask "Does the client prefer a specific development methodology (waterfall, agile, hybrid)?" --json --notebook <notebook_id>
+notebooklm ask "What evaluation criteria will the client use to assess proposals?" --json --notebook <notebook_id>
 ```
 
 ### Using Citations
@@ -114,11 +125,11 @@ For complex extraction, use conversation continuity:
 
 ```bash
 # First query
-notebooklm ask "What are the main project objectives?" --json
+notebooklm ask "What are the main project objectives?" --json --notebook <notebook_id>
 # → returns conversation_id in JSON
 
 # Follow-up using same conversation
-notebooklm ask "For each objective, what specific KPIs does the client mention?" --json -c <conversation_id>
+notebooklm ask "For each objective, what specific KPIs does the client mention?" --json -c <conversation_id> --notebook <notebook_id>
 ```
 
 ## Grounding Rules

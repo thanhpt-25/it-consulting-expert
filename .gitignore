@@ -1,1 +1,5 @@
 .DS_Store
+.claude/
+__pycache__/
+*.pyc
+plugins/it-consulting-expert/evals/results/

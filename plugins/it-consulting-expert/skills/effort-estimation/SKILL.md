@@ -8,33 +8,45 @@ description: >
   timeline", "how many man-months", or needs to break down a project into tasks
   with duration estimates. Also trigger for "見積もり", "FP法", "function point",
   "COCOMO", and any request to estimate development time or resources.
-metadata:
-  version: "0.2.0"
 ---
 
 # Effort Estimation
 
 Produce structured effort estimates for IT projects, **grounded in RFP/RFQ scope from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-If a NotebookLM notebook is available, extract the actual scope, features, and requirements BEFORE estimating. Estimating from vague descriptions leads to inaccurate numbers. The RFP defines what needs to be built — that's the basis for every estimate.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Scope from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `functional_requirements`, `nonfunctional_requirements`, `integrations`, `data_migration`, `timeline`.
+4. **Upstream files:** `02-architecture.md` if it exists — the architecture determines integration and infrastructure work.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for effort-estimation`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "List every feature, module, or functional requirement that needs to be built" --json
-notebooklm ask "List all non-functional requirements with specific targets (performance, availability, security)" --json
-notebooklm ask "What integrations with external systems are required? List each integration point" --json
-notebooklm ask "What data migration or conversion is needed? Describe the data volumes and sources" --json
-notebooklm ask "What timeline or deadline constraints does the client specify?" --json
-notebooklm ask "What technology stack is required or preferred?" --json
-notebooklm ask "What testing or quality requirements does the client specify?" --json
+notebooklm ask "List every feature, module, or functional requirement that needs to be built" --json --notebook <notebook_id>
+notebooklm ask "List all non-functional requirements with specific targets (performance, availability, security)" --json --notebook <notebook_id>
+notebooklm ask "What integrations with external systems are required? List each integration point" --json --notebook <notebook_id>
+notebooklm ask "What data migration or conversion is needed? Describe the data volumes and sources" --json --notebook <notebook_id>
+notebooklm ask "What timeline or deadline constraints does the client specify?" --json --notebook <notebook_id>
+notebooklm ask "What technology stack is required or preferred?" --json --notebook <notebook_id>
+notebooklm ask "What testing or quality requirements does the client specify?" --json --notebook <notebook_id>
 ```
-
-Use these extracted requirements as the WBS input. Every line item in the estimate must trace to an RFP requirement or be marked as "Proposed."
 
 ### Step 1: Additional Inputs from User
 
@@ -58,60 +70,65 @@ Default to **WBS-based** for SIer-style proposals.
 
 For each requirement extracted from the RFP, decompose into the standard SIer phases:
 
-**Phase 1: Requirements Definition (要件定義) — typically 10-15% of total**
-**Phase 2: Basic Design (基本設計) — typically 15-20%**
-**Phase 3: Detailed Design (詳細設計) — typically 15-20%**
-**Phase 4: Implementation (製造) — typically 20-25%**
-**Phase 5: Integration Testing (結合テスト) — typically 10-15%**
-**Phase 6: System Testing (総合テスト) — typically 10-15%**
-**Phase 7: Deployment & Transition (移行・リリース) — typically 5-10%**
-**Project Management (PM工数) — add 10-15% across all phases**
+要件定義 → 基本設計 → 詳細設計 → 製造 → 結合テスト → 総合テスト → 移行・リリース, with PM effort added on top.
 
-### Step 4: Estimate Each Task
+The typical share of each phase, and the PM overhead range, live in `shared/policy.json` (`estimation`).
+Don't restate them — estimate bottom-up per task, and let the engine flag any phase whose share falls
+outside its typical range. A flagged phase is a prompt to check, not an error: explain it or fix it.
 
-For each WBS item, estimate in man-days (人日). 1 man-month = ~20 working days = ~160 hours.
+### Step 4: Estimate each task in 人日
 
-Read `references/estimation-templates.md` for per-feature-type estimation benchmarks.
-Read `references/function-point-guide.md` for FP method details.
+Estimate each WBS item in man-days (人日), using the benchmarks in `references/estimation-templates.md`.
+Split anything over 5 人日. Every item carries the Brief requirement id it implements (`req`), or
+`"label": "Proposed"` when it is your recommendation (cross-cutting work such as environments, CI/CD,
+documentation, training).
 
-### Step 5: Apply Adjustment Factors
+### Step 5: Choose adjustment factors — with a reason for each
 
-| Factor | Range | Notes |
-|--------|-------|-------|
-| Technical complexity | 0.8 - 1.5x | New technology = higher |
-| Team experience | 0.7 - 1.3x | Experienced team = lower |
-| Requirements clarity | 0.9 - 1.4x | Vague RFP sections = higher |
-| Distributed team | 1.1 - 1.3x | Offshore = higher |
-| Regulatory/compliance | 1.1 - 1.5x | Driven by RFP compliance requirements |
+| Factor | Bounds | Raise it when |
+|---|---|---|
+| `technical_complexity` | 0.8–1.5 | new or unproven technology |
+| `team_experience` | 0.7–1.3 | below 1.0 for an experienced team; above for a new stack |
+| `requirements_clarity` | 0.9–1.4 | Brief has many `scope_ambiguous` items or open gaps |
+| `distributed_team` | 1.0–1.3 | offshore / multi-site delivery |
+| `regulatory` | 1.0–1.5 | the Brief's compliance NFRs (金融, 医療, 官公庁) |
+| `integration_complexity` | 1.0–1.5 | many or legacy integrations in `integrations` |
 
-### Step 6: Output Format
+Bounds are enforced by the engine (`shared/policy.json`). Factors **multiply** — 1.1 × 1.1 × 1.1 is
+1.33, not 1.3 — which is exactly the arithmetic the engine exists to get right.
 
-**WBS Table with RFP Traceability:**
-| ID | RFP Req | Phase | Task | Estimate (人日) | Assignee Role | Dependencies |
-|----|---------|-------|------|-----------------|---------------|--------------|
+### Step 6: Compute with the engine — never by hand
 
-The **RFP Req** column links every estimate to the specific requirement it addresses.
+Write `inputs/estimate.json` in the workspace (format: `${CLAUDE_PLUGIN_ROOT}/shared/engine.md`), then:
 
-**Summary by Phase:**
-| Phase | Man-Days | Man-Months | % of Total |
-|-------|----------|------------|------------|
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" estimate
+```
 
-**Risk-Adjusted Range:**
-- Optimistic (楽観): base × 0.8
-- Most likely (最頻): base × 1.0
-- Pessimistic (悲観): base × 1.5
-- **Recommended estimate for proposals**: use P75 (base × 1.2)
+It writes `03-estimate.json` / `03-estimate.md` with the phase table, PM overhead, the factor product,
+the three-point range, the **recommended figure for the proposal**, the allocation by role that
+team-composition and cost-estimation consume, and findings: untraced items, oversized tasks, phases
+outside their typical share. **Do not type any of these numbers yourself, and do not "tidy" them.**
+To change a result, change an input and re-run.
 
-**Estimation Confidence:**
-- Items well-defined in RFP → High confidence
-- Items vaguely described in RFP → Medium confidence, flag for clarification
-- Items not in RFP but recommended → Low confidence, mark as "Proposed"
+Address every finding before handing over — trace or relabel untraced items, split oversized tasks,
+and explain any phase share the engine flags.
+
+For Function Points use `"method": "fp"` (counting rules in `references/function-point-guide.md`).
+FP covers design, build and unit test; add WBS items for 移行 and anything else outside that scope.
+
+**Your track record.** If `_firm/calibration.json` has closed projects of the same `project_type`, the
+output shows how they ran against their estimates. Show it to the user. Applying it
+(`"apply_calibration": true`) is their call, not yours.
+
+**Spreadsheet.** If the user wants the WBS as Excel, build `artifacts/estimate.xlsx` with the `xlsx`
+skill *from `03-estimate.json`* — the workbook mirrors the engine's numbers; it does not recompute them.
 
 ## Key Principles
 
 - **Ground every estimate in scope**: No WBS item should exist without a corresponding requirement
 - **Flag RFP ambiguities**: Where the RFP is vague, call it out and estimate a range instead of a point
-- **Pad honestly**: 20% buffer is professional. Underbidding destroys trust
+- **Pad honestly**: the recommended figure already applies the policy multiplier (`shared/policy.json`); don't add a second buffer on top
 - **Decompose deeply**: Tasks over 5 man-days should be split further
 - **Document assumptions**: Link each assumption to the RFP section it interprets
 

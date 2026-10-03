@@ -8,34 +8,44 @@ description: >
   to determine roles, seniority mix, and resource allocation for a software,
   infrastructure, or transformation project. Also trigger for "resource plan",
   "staffing", "人員計画", "チーム構成".
-metadata:
-  version: "0.2.0"
 ---
 
 # Team Composition Planner
 
 Design optimal team structures for IT consulting engagements, **grounded in RFP/RFQ requirements from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-If a NotebookLM notebook is available for this engagement, query it BEFORE proposing any team structure. The RFP may specify required roles, team size constraints, onsite requirements, certifications, or client-side team members. Ignoring these means proposing a team the client will reject.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract RFP Team Requirements from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-If a notebook is available (ask the user, or reuse the notebook from `create-proposal`):
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.staffing`, `team_process.methodology`, `timeline`, `evaluation.mandatory_qualifications` (certifications).
+4. **Upstream files:** `03-estimate.json` → `roles` (recommended 人月 per role) and `02-architecture.md`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for team-composition`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "What team structure, staffing requirements, or role specifications does the client define?" --json
-notebooklm ask "Does the client require specific certifications, clearances, or experience levels?" --json
-notebooklm ask "What is the expected delivery model — onsite, offshore, nearshore, or hybrid?" --json
-notebooklm ask "Does the client provide their own team members? What roles does the client fill vs. what the vendor must provide?" --json
-notebooklm ask "What is the project scope, scale, and timeline that should drive team sizing?" --json
-notebooklm ask "Are there any technology stack requirements that affect team skill needs?" --json
+notebooklm ask "What team structure, staffing requirements, or role specifications does the client define?" --json --notebook <notebook_id>
+notebooklm ask "Does the client require specific certifications, clearances, or experience levels?" --json --notebook <notebook_id>
+notebooklm ask "What is the expected delivery model — onsite, offshore, nearshore, or hybrid?" --json --notebook <notebook_id>
+notebooklm ask "Does the client provide their own team members? What roles does the client fill vs. what the vendor must provide?" --json --notebook <notebook_id>
+notebooklm ask "What is the project scope, scale, and timeline that should drive team sizing?" --json --notebook <notebook_id>
+notebooklm ask "Are there any technology stack requirements that affect team skill needs?" --json --notebook <notebook_id>
 ```
-
-Use extracted data to constrain all subsequent team planning.
 
 ### Step 1: Gather Additional Context from User
 
@@ -63,39 +73,50 @@ Select roles that match the RFP's requirements. Read `references/role-catalog.md
 
 If the RFP mandates specific roles not in this list, include them. If the RFP excludes roles you'd normally recommend, note the omission as a risk.
 
-### Step 3: Determine Team Size
+### Step 3: Size the team from the estimate
 
-**Start from RFP constraints.** If the RFP states team size or budget, work within those bounds. Otherwise, apply these heuristics:
+**Start from `03-estimate.json`.** Its `roles` table gives the recommended 人月 per role — the team must
+deliver that effort, so the team's total 人月 has to land within policy tolerance of `recommended_mm`
+(cost-estimation checks this and flags any mismatch). RFP constraints (`team_process.staffing`) override
+the heuristics below; record which ones drove each role.
 
-- Small (1-3 months, 1-2 features): 3-5 members
-- Medium (3-6 months, moderate scope): 5-10 members
-- Large (6-12+ months, enterprise): 10-25 members
-- Enterprise program: multiple teams, 25+ with PMO
+Heuristics when the RFP is silent:
 
-**Seniority mix guidelines:**
-- Senior (7+ years): 20-30%
-- Mid-level (3-7 years): 40-50%
-- Junior (0-3 years): 20-30%
+- Small (1–3 months): 3–5 members · Medium (3–6): 5–10 · Large (6–12+): 10–25 · Programme: 25+ with PMO
+- Seniority mix: senior 20–30%, mid 40–50%, junior 20–30%
+- Ramp-up: core team (PM, TL, BA, 1–2 SE) for requirements and design → full team for build →
+  add QA, release developers for test → core team for transition
 
-**Ramp-up pattern:**
-- Phase 1 (requirements/design): small core — PM, TL, BA, 1-2 SE
-- Phase 2 (development): full team ramp-up
-- Phase 3 (testing): add QA, reduce some developers
-- Phase 4 (deployment/transition): scale down to core team
+Split each role's 人月 into lines by seniority and period: `count × months on the project × allocation`.
+A role that spans phases at different sizes gets one line per period.
 
-### Step 4: Output Format
+### Step 4: Write `04-team.json` and the org chart
 
-**Organization Chart (体制図)** — visual hierarchy using mermaid or text tree
+`04-team.json` is what cost-estimation prices, so its shape is fixed:
 
-**Staffing Table:**
-| Role | Count | Seniority | Allocation (%) | Duration | Skills Required | RFP Source |
-|------|-------|-----------|----------------|----------|-----------------|------------|
+```json
+{"lines": [
+  {"role": "PM", "seniority": "senior", "count": 1, "from_month": 1, "to_month": 18, "allocation": 1.0, "mm": 18,
+   "skills": "製造業CRM, SAP連携", "label": "RFP", "rfp_source": "RFP §5.2 — PMはPMP保有者"},
+  {"role": "SE", "seniority": "mid", "count": 3, "from_month": 2, "to_month": 15, "allocation": 1.0, "mm": 42,
+   "skills": "Java, React", "label": "Proposed", "rfp_source": null}
+ ],
+ "estimate_recommended_mm": 175.79,
+ "notes": "…"}
+```
 
-The **RFP Source** column is important — it traces each role back to the RFP requirement that drives it, or marks it as "Proposed" if it's your recommendation.
+- `role` uses the rate-card codes: PM, TL, BA, SE, PG, QA, INFRA, DEVOPS, SEC, UX, AIML, DBA, SM.
+- `mm` = count × (to_month − from_month + 1) × allocation. Check your arithmetic with a one-line
+  `python3 -c` sum of the lines before saving; the total must sit close to `estimate_recommended_mm`
+  (copied from `03-estimate.json`, not typed). If it doesn't, change the team — or go back and challenge the
+  estimate — but never leave the two disagreeing silently.
+- `label` / `rfp_source`: which RFP requirement drives the role, or `Proposed`.
 
-**Monthly Resource Histogram** — person-months per role across timeline
+Then write `04-team.md` for people:
 
-**Ramp-Up/Down Schedule** — when each role joins and leaves
+- **Org chart (体制図)** — use the `drawio` skill when available (export PNG for the proposal), otherwise mermaid
+- **Staffing table** — the lines above, with the RFP Source column
+- **Monthly resource histogram** and **ramp-up/down schedule**
 
 ## Key Principles
 

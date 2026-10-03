@@ -8,8 +8,6 @@ description: >
   status reports for client stakeholders. Also trigger for "ステータスレポート",
   "進捗管理", "status meeting preparation", and any request to summarize project
   progress, schedule variance, or defect trends for reporting purposes.
-metadata:
-  version: "0.1.0"
 ---
 
 # Progress Report Generator (進捗報告書)
@@ -22,13 +20,27 @@ In Japanese enterprise projects, the 進捗報告 is the primary trust mechanism
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM (if applicable)
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-If the original RFP is in NotebookLM, query for reporting requirements:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.governance` (reporting cadence and format), `timeline.milestones`.
+4. **Upstream files:** `engagement.json` → `baseline`, previous reports in `progress/`, `_state/cr-ledger.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for progress-report`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "What reporting format, frequency, or content does the client require?" --json
-notebooklm ask "What KPIs or metrics does the client want tracked in status reports?" --json
+notebooklm ask "What reporting format, frequency, or content does the client require?" --json --notebook <notebook_id>
+notebooklm ask "What KPIs or metrics does the client want tracked in status reports?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Current Status from User
@@ -79,13 +91,20 @@ Traffic light dashboard:
 | Phase/Task | Planned Start | Planned End | Actual Start | Actual End | Status | % Complete |
 |-----------|--------------|------------|-------------|-----------|--------|------------|
 
-**EVM Metrics (if tracked):**
-| Metric | Value | Interpretation |
-|--------|-------|---------------|
-| SPI (Schedule Performance Index) | | ≥1.0 = on/ahead of schedule |
-| CPI (Cost Performance Index) | | ≥1.0 = at/under budget |
-| EAC (Estimate at Completion) | | Projected final cost |
-| ETC (Estimate to Complete) | | Remaining cost |
+**EVM metrics — computed by the engine.** Put the cumulative figures at the status date in
+`inputs/evm-<date>.json` — `{"status_date", "bac", "pv", "ev", "ac"}`, or a `tasks` list with planned value,
+planned % and % complete — and run:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" evm --in inputs/evm-2026-10-31.json
+```
+
+It writes `progress/evm-<date>.json/.md` with SV, CV, SPI, CPI, EAC (three forecasts), ETC, VAC and TCPI,
+each colour-coded against the thresholds in `shared/policy.json` (from `references/report-templates.md`).
+Paste its table into the report. The **Schedule** and **Cost** lights in the dashboard must agree with
+the engine's colours — never report Green on a metric the engine marks Yellow or Red.
+
+**Change requests** in section 8 come from `python3 "${CLAUDE_PLUGIN_ROOT}/sier" cr report`.
 
 **3. This Week's Accomplishments (今週の実績)**
 1. [Completed item with result]

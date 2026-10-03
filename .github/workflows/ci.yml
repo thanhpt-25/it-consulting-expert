@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_evals:
+        description: "Also run the plugin eval suite (uses ANTHROPIC_API_KEY, costs money)"
+        type: boolean
+        default: false
+
+jobs:
+  engine-tests:
+    name: engine unit + regression tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: unittest (stdlib only — nothing to install)
+        run: python -m unittest discover -s tests -t tests -v
+
+  validate:
+    name: plugin + marketplace manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: claude plugin validate plugins/it-consulting-expert --strict
+      - run: claude plugin validate .claude-plugin/marketplace.json --strict
+
+  evals:
+    name: plugin evals (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_evals
+    needs: [engine-tests, validate]
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g @anthropic-ai/claude-code
+      - name: sandbox backend required by plugin eval for Bash
+        run: sudo apt-get update -q && sudo apt-get install -y -q bubblewrap socat
+      - name: claude plugin eval
+        working-directory: plugins/it-consulting-expert
+        run: >
+          claude plugin eval . --runs 3 --allow-tools Bash Write Edit
+          --trust-plugin --no-publish --threshold 0.8 --max-cost-usd 25 -j 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: plugins/it-consulting-expert/evals/results/

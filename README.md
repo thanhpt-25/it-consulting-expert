@@ -1,8 +1,24 @@
 # IT Consulting Expert Plugin
 
-Full-lifecycle IT consulting expert for Japanese SIer (System Integrator) engagements. This plugin covers every phase of a consulting engagement — from initial RFP assessment through proposal creation, project execution, and post-delivery — following Japanese enterprise conventions with bilingual (Japanese/English) support.
+Full-lifecycle IT consulting expert for Japanese SIer (System Integrator) engagements — from the first
+read of an RFP through proposal, delivery and maintenance — following Japanese enterprise conventions,
+bilingual (Japanese/English).
 
-All skills integrate with **Google NotebookLM** as the single source of truth. Customer RFP/RFQ documents are uploaded to NotebookLM, and every skill queries it before generating content. This prevents hallucination and ensures all outputs are grounded in actual client requirements.
+**What makes 2.0 different**
+
+- **One engagement folder, one RFP extraction.** `rfp-notebook` extracts the client's RFP from NotebookLM
+  once into a validated, cited **RFP Brief** (`00-rfp-brief.json`). Every other skill reads it and asks
+  NotebookLM only about gaps — ~90 queries per engagement became 26.
+- **No arithmetic in prose.** Effort, cost, price, tax, budget fit, Go/No-Go score, EVM, SLA and change gates
+  are computed by **`sier`**, a bundled, tested calculation engine. `sier verify` re-derives every number
+  from its saved inputs and fails if one was edited by hand or went stale.
+- **Agent teams.** A **presale team** (RFP analyst, architect, estimator, staffing planner, cost controller,
+  writer) runs the bid wave by wave with human gates, and the **review board** runs as independent
+  parallel reviewers.
+- **Tested.** 60 engine tests (including a regression of the original dry run, which the engine shows was
+  arithmetically wrong), 20 plugin eval cases for routing and engine use, CI.
+
+18 skills · 14 agents · 1 engine. All client facts come from the customer's RFP; all numbers come from code.
 
 ---
 
@@ -12,13 +28,17 @@ All skills integrate with **Google NotebookLM** as the single source of truth. C
 2. [Prerequisites](#prerequisites)
 3. [Quick Start](#quick-start)
 4. [Engagement Lifecycle](#engagement-lifecycle)
-5. [Skills Reference](#skills-reference)
-6. [NotebookLM Integration](#notebooklm-integration)
-7. [Grounding Rules](#grounding-rules)
-8. [Workflow Examples](#workflow-examples)
-9. [Output Formats](#output-formats)
-10. [Supported Engagement Types](#supported-engagement-types)
-11. [Tips & Best Practices](#tips--best-practices)
+5. [Engagement Workspace](#engagement-workspace)
+6. [The Calculation Engine (sier)](#the-calculation-engine-sier)
+7. [Agent Teams](#agent-teams)
+8. [Skills Reference](#skills-reference)
+9. [NotebookLM Integration](#notebooklm-integration)
+10. [Grounding Rules](#grounding-rules)
+11. [Workflow Examples](#workflow-examples)
+12. [Output Formats](#output-formats)
+13. [Testing](#testing)
+14. [Supported Engagement Types](#supported-engagement-types)
+15. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -26,9 +46,9 @@ All skills integrate with **Google NotebookLM** as the single source of truth. C
 
 1. Open Claude Desktop → **Settings** → **Capabilities**
 2. Click **Install Plugin** and select the `it-consulting-expert.plugin` file
-3. The 16 skills will appear in your skill list
+3. The 18 skills and 14 agents will appear in your skill list
 
-To verify installation, ask Claude: "List my skills" — you should see all 16 skills prefixed with `it-consulting-expert:`.
+To verify installation, ask Claude: "List my skills" — you should see all 18 skills prefixed with `it-consulting-expert:`.
 
 ---
 
@@ -40,89 +60,148 @@ To verify installation, ask Claude: "List my skills" — you should see all 16 s
 - **NotebookLM skill** installed (either `notebooklm` API skill or `notebooklm-web` browser skill) — this plugin depends on NotebookLM for RFP data extraction
 - Customer RFP/RFQ document uploaded to a Google NotebookLM notebook
 
+- **Python 3.7+** (`python3`) for the `sier` calculation engine — standard library only, nothing to install. macOS and the Cowork VM already have it.
+
 **Recommended:**
 
 - **docx skill** — most deliverables output as Word documents
 - **pptx skill** — the proposal-presentation skill generates PowerPoint decks
-- **xlsx skill** — useful for detailed estimation spreadsheets
+- **xlsx skill** — Excel exports of the estimate and cost (they mirror engine output)
+- **drawio skill** — architecture diagrams and 体制図
 
 ---
 
 ## Quick Start
 
-The fastest path from "we received an RFP" to "proposal submitted":
+**Step 1 — Create the engagement**
 
-**Step 1 — Set up the RFP Notebook**
+> "新規案件を始めます。ABC製造のCRMクラウド移行です。" / "Start a new engagement for ABC Manufacturing's CRM migration"
 
-> "Set up a notebook for [Client Name]'s RFP and run the full extraction"
+`engagement-init` creates the engagement folder (`./consulting/<client>-<project>/`).
 
-This triggers `rfp-notebook`, which creates the notebook, uploads all sources, runs 26 extraction queries, and produces a **Structured RFP Brief** — the canonical reference for all downstream skills.
+**Step 2 — Extract the RFP once**
 
-**Step 2 — Assess the opportunity**
+> "Set up a notebook for this RFP and run the full extraction"
 
-> "Analyze this RFP and give me a Go/No-Go recommendation"
+`rfp-notebook` loads the RFP and attachments into NotebookLM, runs 26 extraction queries, and writes the
+validated RFP Brief. If NotebookLM is unavailable it reads the files directly and says so.
 
-This triggers the `rfp-analysis` skill, which scores the deal across 6 dimensions and flags red flags before you invest proposal effort.
+**Step 3 — Either run the whole bid…**
 
-**Step 3 — Generate the proposal**
+> "Run the presale team on this RFP"
 
-> "Create a proposal for this RFP"
+`presale-team` runs the agents wave by wave, stopping for your Go/No-Go decision and again if the price is
+over budget, and finishes with the review board's verdict.
 
-This triggers `create-proposal`, which orchestrates queries to NotebookLM, extracts all requirements, and generates a full proposal document. It will call the other proposal-phase skills (team, effort, cost, technical, delivery) as needed.
+**…or one skill at a time**
 
-**Step 4 — Prepare the presentation**
+> "Go/No-Go判断をお願いします" → `rfp-analysis` · "工数見積をして" → `effort-estimation` ·
+> "費用を計算して" → `cost-estimation` · "提案書を作成して" → `create-proposal` · "提出前にレビューして" → `proposal-review`
 
-> "Create a presentation deck for this proposal"
-
-Generates a 15-slide pitch deck and Q&A preparation document for the proposal defense meeting.
+At any point: **"案件の状況は？" / "where are we on this bid?"** → `sier status` shows what exists and what's next.
 
 ---
 
 ## Engagement Lifecycle
 
-The 16 skills map to four phases of a consulting engagement, plus a cross-cutting quality gate and a foundational notebook management layer. Use them in order, or independently as needed.
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  FOUNDATION    engagement-init → rfp-notebook (the RFP Brief)            │
+├───────────┬──────────────────┬─────────────────────┬─────────────────────┤
+│ PRE-      │ PROPOSAL         │ EXECUTION           │ POST-DELIVERY       │
+│ PROPOSAL  │                  │                     │                     │
+│ rfp-      │ technical-       │ progress-report     │ maintenance-        │
+│ analysis  │   solution       │ change-request      │   proposal          │
+│           │ effort-estimation│ vendor-management   │ lessons-learned ─┐  │
+│           │ team-composition │                     │  (calibrates the │  │
+│           │ cost-estimation  │                     │   next estimate) │  │
+│           │ project-delivery │                     │                  │  │
+│           │ create-proposal  │                     │                  │  │
+│           │ proposal-/design-│                     │                  │  │
+│           │   presentation   │                     │                  │  │
+├───────────┴──────────────────┴─────────────────────┴──────────────────┼──┤
+│  ORCHESTRATION   presale-team — runs the proposal phase with agents   │  │
+│  QUALITY GATE    proposal-review — independent review agents + verify │  │
+│  ENGINE          sier — every number, every skill  ◀──────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Engagement Workspace
+
+Every skill and agent reads and writes one folder per engagement — the files are how they hand work to
+each other. Full contract: `plugins/it-consulting-expert/shared/engagement-workspace.md`.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    ENGAGEMENT LIFECYCLE                         │
-├──────────┬──────────────┬───────────────┬──────────────────────┤
-│  PRE-    │   PROPOSAL   │  EXECUTION    │  POST-DELIVERY       │
-│  PROPOSAL│   PHASE      │  PHASE        │  PHASE               │
-├──────────┼──────────────┼───────────────┼──────────────────────┤
-│          │              │               │                      │
-│ rfp-     │ create-      │ progress-     │ maintenance-         │
-│ notebook │ proposal     │ report        │ proposal             │
-│ (Step 0) │              │               │                      │
-│          │              │               │                      │
-│ rfp-     │              │               │                      │
-│ analysis │              │               │                      │
-│          │              │               │                      │
-│          │ team-        │ change-       │ lessons-             │
-│          │ composition  │ request       │ learned              │
-│          │              │               │                      │
-│          │ effort-      │ vendor-       │                      │
-│          │ estimation   │ management    │                      │
-│          │              │               │                      │
-│          │ cost-        │               │                      │
-│          │ estimation   │               │                      │
-│          │              │               │                      │
-│          │ technical-   │               │                      │
-│          │ solution     │               │                      │
-│          │              │               │                      │
-│          │ project-     │               │                      │
-│          │ delivery     │               │                      │
-│          │              │               │                      │
-│          │ proposal-    │               │                      │
-│          │ presentation │               │                      │
-│          │              │               │                      │
-│          │ design-      │               │                      │
-│          │ presentation │               │                      │
-│          │              │               │                      │
-├──────────┴──────────────┴───────────────┴──────────────────────┤
-│  CROSS-CUTTING QUALITY GATE                                    │
-│  proposal-review — 6-persona AI review board with debate       │
-└────────────────────────────────────────────────────────────────┘
+consulting/
+├── _firm/                     rate-card.json · calibration.json  (shared across engagements)
+└── abc製造-crmクラウド移行/
+    ├── engagement.json        client, notebook, deadlines, contract baseline
+    ├── 00-rfp-brief.json/.md  the RFP, extracted once, cited  (rfp-notebook)
+    ├── 01-go-nogo.json/.md    sier score                      (rfp-analysis)
+    ├── 02-architecture.md                                     (technical-solution)
+    ├── 03-estimate.json/.md   sier estimate                   (effort-estimation)
+    ├── 04-team.json/.md                                       (team-composition)
+    ├── 05-cost.json/.md       sier cost                       (cost-estimation)
+    ├── 06-delivery-plan.md                                    (project-delivery)
+    ├── inputs/                the inputs behind every computed file
+    ├── artifacts/             proposal.docx, decks, xlsx — what the client sees
+    ├── progress/              EVM and change-request reports
+    └── _state/                runs/ (audit trail) · derived/ · review/ · cr-ledger.json
 ```
+
+Location: `$SIER_HOME` if set, otherwise `./consulting` under the current folder (in Cowork, the connected
+folder; in Claude Code, the project).
+
+---
+
+## The Calculation Engine (sier)
+
+`plugins/it-consulting-expert/sier/` — Python, standard library only. Skills call it as
+`python3 "${CLAUDE_PLUGIN_ROOT}/sier" <command>`; you can run it yourself the same way.
+
+| Command | Computes |
+|---|---|
+| `init`, `status` | Create an engagement; pipeline, deadlines and next step |
+| `brief validate / render / gaps` | Schema-check the RFP Brief; render it; list gaps blocking a skill |
+| `score` | Go/No-Go against the canonical rubric, with the mandatory-qualification gate |
+| `estimate` | WBS or function points, PM overhead, adjustment factors, three-point range, recommended 人月, traceability |
+| `cost` | Labor and non-labor, management fee, risk premium, 税抜/税込, margin, budget fit, team-vs-estimate reconciliation (total and per role), payment schedule, TCO |
+| `evm` | SPI, CPI, EAC (three forecasts), ETC, VAC, TCPI with RAG status |
+| `sla` | Allowed downtime per tier and window, maintenance fee, multi-year totals, service credits |
+| `cr add / report` | Change ledger: cumulative deviation gates, approval authority |
+| `calibrate`, `ratecard` | Firm-wide calibration from closed projects; the firm rate card |
+| `derive run / list` | Run a generated analysis script under guardrails (Tier 2) |
+| `verify` | Recompute every artifact from its inputs and cross-check estimate ↔ team ↔ cost ↔ budget |
+
+Every policy number — rubric weights, phase ranges, factor bounds, fees, premiums, EVM thresholds, CR gates,
+SLA windows — lives in one file, `shared/policy.json`. Change it there and every calculation, test and
+document follows. Command reference: `shared/engine.md`. When to write code and the rules for it:
+`shared/harness.md`.
+
+---
+
+## Agent Teams
+
+**Presale team** (`presale-team` skill — you stay in the loop as the bid manager's audience):
+
+| Wave | Agent | Produces |
+|---|---|---|
+| 0 | `presale-rfp-analyst` | RFP Brief |
+| — | *Gate A: your Go/No-Go decision* | |
+| 1 | `presale-architect` (opus) | `02-architecture.md` |
+| 2 | `presale-estimator` ∥ `presale-writer` (draft) | `03-estimate`, proposal draft |
+| 3 | `presale-staffing` | `04-team`, `06-delivery-plan` |
+| 4 | `presale-cost` | `05-cost` |
+| — | *Gate B: your decision if over budget* | |
+| 5 | `presale-writer` (final, opus) | `artifacts/proposal.docx`, compliance matrix |
+| 6 | review board, in parallel | `_state/review/*.md` + consensus |
+
+**Review board** (`proposal-review` skill): `review-business`, `review-architect`, `review-qcd`,
+`review-risk`, `review-client`, `review-delivery`, plus optional `review-security` and `review-legal-ja`.
+Each runs in its own context, read-only, and never sees another reviewer's report; conflicts are mediated
+only after all have reported.
 
 ---
 
@@ -130,31 +209,30 @@ The 16 skills map to four phases of a consulting engagement, plus a cross-cuttin
 
 ### Foundation Layer
 
-#### `rfp-notebook` — NotebookLM Engagement Setup (RFPノートブック管理) ⭐ Step 0
+#### `engagement-init` — Engagement Workspace (案件ワークスペース) ⭐ Start here
 
-**Purpose:** Set up, manage, and extract structured data from NotebookLM notebooks for consulting engagements. This is the automated "Step 0" that all other skills depend on.
+**Purpose:** Create or resume the engagement folder every other skill uses; record deadlines and the
+post-award baseline; set up the firm rate card.
 
-**Trigger phrases:**
-- "Set up a notebook for this RFP", "RFPのノートブックを作成"
-- "Upload RFP to NotebookLM", "RFP資料をアップロード"
-- "Extract requirements from the RFP", "要件を抽出", "Run RFP extraction"
-- "Create an RFP briefing", "RFPブリーフィング作成"
-- "Add amendment to notebook", "追加資料をノートブックに追加"
-- "Which notebook has the RFP?", "Manage engagement notebooks"
+**Trigger phrases:** "New engagement", "新規案件", "案件フォルダを作成", "engagement status", "案件の状況",
+"what's next on this bid", "提出期限を設定", "ベースライン設定"
 
-**What it produces:**
-- NotebookLM notebook created with naming convention (`RFP - [Client] - [Project]`)
-- All sources uploaded and verified ready (RFP + appendices + Q&A + amendments)
-- 26 standard extraction queries across 8 categories (Overview, Requirements, Timeline, Budget, Technical, Team, Evaluation, Risks)
-- **Structured RFP Brief** — the canonical reference document that all downstream skills consume
-- Gaps & Questions list for client clarification
-- Amendment impact reports for incremental updates
-- Multi-engagement notebook dashboard
+---
 
-**How it works:** Creates a notebook, uploads all source documents, waits for processing, then runs a comprehensive 26-query extraction. The output is a structured RFP Brief with `[RFP]` / `[Proposed]` / `[RFP+]` grounding labels and full citation traceability. All other skills reference this brief instead of re-querying NotebookLM independently.
 
-**Example:**
-> "I just received an RFP from Toyota for a DX platform. Create a notebook, upload the RFP and its 3 appendices, and run the full extraction."
+#### `rfp-notebook` — RFP Extraction (RFPノートブック管理)
+
+**Purpose:** The only skill that extracts from the RFP. Loads the RFP and attachments into NotebookLM, runs
+26 standard extraction queries, and writes the **RFP Brief** — `00-rfp-brief.json`, validated by
+`sier brief validate`, rendered to Markdown by `sier brief render`.
+
+**Trigger phrases:** "Set up a notebook for this RFP", "RFPのノートブックを作成", "Extract requirements",
+"要件を抽出", "Add amendment to notebook", "追加資料をノートブックに追加", "RFPブリーフィング作成"
+
+**What it produces:** requirements with stable ids (`FR-`, `NFR-`, `INT-`), every fact labelled and cited,
+the gaps list (questions for the client, each naming the skills it blocks), and amendment impact reports.
+If NotebookLM is unreachable it reads the files directly and records `source_tier: 3`. When sources change,
+`sier status` marks the Brief stale for every skill until it is regenerated.
 
 ---
 
@@ -183,7 +261,7 @@ The 16 skills map to four phases of a consulting engagement, plus a cross-cuttin
 
 ### Proposal Phase
 
-#### `create-proposal` — Proposal Generator (提案書作成) ⭐ Orchestrator
+#### `create-proposal` — Proposal Generator (提案書作成)
 
 **Purpose:** Generate a complete consulting proposal grounded in the client's RFP.
 
@@ -197,7 +275,9 @@ The 16 skills map to four phases of a consulting engagement, plus a cross-cuttin
 - [RFP] / [Proposed] / [RFP+] labeling for full traceability
 - Output as .docx
 
-**How it works:** This is the orchestrator skill. It runs 11 extraction queries against NotebookLM, then calls the other proposal-phase skills (team, effort, cost, technical, delivery) to build each section. You can run it standalone and it will produce everything, or run the component skills individually for focused work.
+**How it works:** Writes each section from its workspace file (architecture, estimate, team, cost, delivery
+plan), copies engine tables verbatim, and checks that the compliance matrix covers every requirement id in
+the Brief. It no longer re-extracts the RFP. For the whole bid end to end, use `presale-team`.
 
 **Example:**
 > "Create a proposal for the RFP in my 'NTT Data Cloud Migration' notebook"
@@ -349,6 +429,16 @@ The 16 skills map to four phases of a consulting engagement, plus a cross-cuttin
 
 ---
 
+#### `presale-team` — Presale Agent Team (提案チーム) ⭐ Orchestrator
+
+**Purpose:** Run the proposal phase end to end with specialist agents, wave by wave, with the engine
+checking every wave and two human gates (Go/No-Go; over budget).
+
+**Trigger phrases:** "Run the presale team", "提案チームで進めて", "提案書一式を作成", "end-to-end bid",
+"rerun the bid after the amendment"
+
+---
+
 ### Execution Phase
 
 #### `progress-report` — Progress Reports (進捗報告書)
@@ -464,38 +554,21 @@ The 16 skills map to four phases of a consulting engagement, plus a cross-cuttin
 
 #### `proposal-review` — Multi-Perspective Review Board (多角的レビューボード)
 
-**Purpose:** Assemble an AI review board of 6 specialist personas that independently review all artifacts, debate conflicts, and produce a consensus assessment before client submission.
+**Purpose:** Independent review by specialist agents before client submission, then structured debate and
+a consensus verdict.
 
-**Trigger phrases:**
-- "Review the proposal", "提案レビュー", "Quality check the deliverables"
-- "Review from multiple perspectives", "多角的レビュー", "Red team the proposal"
-- "Final check before submission", "提出前最終確認", "品質ゲートレビュー"
-
-**The 6 Reviewer Personas:**
-
-| Persona | Japanese | Focus | Key Question |
-|---------|----------|-------|-------------|
-| Business Strategist | 事業戦略レビューア | ROI, margins, competitive positioning, account strategy | "Does winning this make us stronger?" |
-| Technical Architect | 技術アーキテクトレビューア | Architecture soundness, technology choices, NFR coverage, feasibility | "Can we actually build this as specified?" |
-| QCD Controller | 品質・コスト・納期レビューア | Estimation accuracy, cost balance, timeline feasibility, quality targets | "Will we deliver on time, on budget, at quality?" |
-| Risk & Compliance Officer | リスク・コンプライアンスレビューア | RFP compliance, contractual risk, regulatory, assumptions | "What's the worst that can happen?" |
-| Client Advocate | 顧客視点レビューア | Evaluation criteria alignment, communication quality, trust signals | "Would the client feel confident choosing us?" |
-| Delivery PM | デリバリーPMレビューア | Team feasibility, methodology fit, vendor management, operational readiness | "Could I actually run this project from day one?" |
+**Trigger phrases:** "Review the proposal", "提案レビュー", "多角的レビュー", "Red team the proposal",
+"提出前最終確認", "品質ゲートレビュー"
 
 **How it works:**
-1. **Independent Reviews** — Each persona reviews all artifacts alone (prevents groupthink)
-2. **Conflict Detection** — Identifies where personas disagree (priority, feasibility, scope, risk tolerance)
-3. **Structured Debate** — Conflicting personas present arguments with evidence, rebut, and a mediator synthesizes
-4. **Consensus Report** — 6-dimension scorecard, must-fix items, debate resolutions, strengths to preserve
+1. **`sier verify`** — recompute every number from its inputs; cross-check estimate ↔ team ↔ cost ↔ budget.
+2. **Independent reviews** — six reviewer agents (plus optional Security and Legal-Japan) dispatched in
+   parallel, each in its own context, read-only, never seeing another's report.
+3. **Conflict detection and structured debate** — in the main conversation, after all have reported.
+4. **Consensus report** — scorecard, must-fix items, debate resolutions, strengths to preserve.
 
-**Verdict thresholds:** ✅ READY (≥4.0) | ⚠️ CONDITIONAL (3.0–3.9) | ❌ NOT READY (<3.0)
-
-**Supports revision tracking:** After fixing issues, re-run targeted review on changed artifacts only.
-
-**Extensible:** Add specialized personas (Security Specialist, Industry Expert, Legal Counsel, UX Reviewer, Data/AI Specialist, Financial Controller) for domain-specific engagements.
-
-**Example:**
-> "Review all proposal artifacts before submission. We're bidding on a ¥200M financial system project with a tight timeline. I want the full review board with an extra Security Specialist persona."
+**Verdict thresholds:** ✅ READY (≥4.0) | ⚠️ CONDITIONAL (3.0–3.9) | ❌ NOT READY (<3.0). Revisions re-run only
+the affected reviewers.
 
 ---
 
@@ -503,12 +576,15 @@ The 16 skills map to four phases of a consulting engagement, plus a cross-cuttin
 
 ### How It Works
 
-Every skill follows the same pattern:
+1. **Extract once.** `rfp-notebook` queries NotebookLM (`notebooklm ask "…" --json --notebook <id>`) and
+   writes every answer into the RFP Brief with its citation.
+2. **Read the Brief.** Every other skill starts from `00-rfp-brief.json`.
+3. **Ask only for gaps.** `sier brief gaps --for <skill>` lists what blocks a skill; it queries NotebookLM
+   only for those, then writes the answers back into the Brief.
+4. **Label everything** — `[RFP]`, `[Proposed]`, `[RFP+]` — with citations for anything labelled RFP.
 
-1. **Step 0**: Query NotebookLM with targeted questions (`notebooklm ask "..." --json`)
-2. **Extract**: Parse the JSON response, which includes cited text from the source document
-3. **Ground**: Use cited information to populate proposal sections
-4. **Label**: Mark every fact with its origin — `[RFP]`, `[Proposed]`, or `[RFP+]`
+Always pass `--notebook <id>` — never rely on `notebooklm use`, whose global context concurrent agents
+overwrite. Full rules and the fallback ladder: `shared/notebooklm-contract.md`.
 
 ### Setup
 
@@ -554,11 +630,12 @@ Every piece of information in the output must be labeled:
 
 ### MUST DO
 
-1. Query NotebookLM first before writing any section
+1. Read the RFP Brief before writing any section; query NotebookLM only for gaps it records
 2. Use `--json` flag on all queries to get traceable citations
 3. Attribute all client-specific facts to the source document
 4. Mark assumptions explicitly: "Not specified in RFP — proposed based on industry practice"
 5. Verify numbers — if the RFP states a budget, timeline, or metric, use that exact number
+6. Never type a computed number — effort, cost, price, score and SLA figures come from `sier`
 
 ### MUST NOT
 
@@ -575,40 +652,22 @@ Every piece of information in the output must be labeled:
 ### Example 1: Complete Proposal Cycle (End-to-End)
 
 ```
-You:  "I received an RFP from Sumitomo Mitsui for a core banking API platform.
-       Here are the RFP files."
+You:  "I received an RFP from Sumitomo Mitsui for a core banking API platform. Here are the files."
 
-Step 0 → "Set up a notebook and run the full extraction"
-         → rfp-notebook creates notebook, uploads sources, produces Structured RFP Brief
-
-Step 1 → "Analyze this RFP and give me a Go/No-Go"
-         → rfp-analysis produces: Score 4.2 — Strong GO
-
-Step 2 → "Create the full proposal"
-         → create-proposal orchestrates all sub-skills, outputs .docx
-
-Step 3 → "Create the presentation deck for a 30-minute slot"
-         → proposal-presentation outputs .pptx + Q&A prep doc
-
-Step 4 → "Review everything before we submit"
-         → proposal-review runs 6-persona review board, produces consensus report
-         → Fix must-fix items → re-review changed sections → ✅ READY
-
-Step 5 → [Win the bid, start the project]
-
-Step 6 → "Generate this week's status report"
-         → progress-report outputs weekly 進捗報告書
-
-Step 7 → "The client wants to add real-time notifications. Create a CR."
-         → change-request outputs CR document + updated cumulative tracker
-
-Step 8 → [Project completes]
-
-Step 9 → "Create a maintenance proposal for 24/7 support"
-         → maintenance-proposal outputs SLA + pricing + transition plan
-
-Step 10 → "Run a retrospective on this project"
-         → lessons-learned outputs close-out report + KPT + action items
+Step 0 → "Start a new engagement"            → engagement-init creates the folder
+Step 1 → "Run the presale team on this RFP"  → presale-team:
+           W0 rfp-analyst writes the RFP Brief
+           Gate A: Go/No-Go with you (sier score: 4.2 — STRONG_GO)
+           W1 architect · W2 estimator ∥ writer draft · W3 staffing · W4 cost
+           Gate B: price over budget? you choose between priced options
+           W5 writer completes proposal.docx · W6 review board + sier verify → ✅ READY
+Step 2 → "Create the presentation deck"      → proposal-presentation / design-presentation
+Step 3 → [Win] "Set the contract baseline"   → engagement-init records baseline from 03/05
+Step 4 → "Generate this week's status report" → progress-report (EVM via sier evm)
+Step 5 → "Client wants real-time notifications — create a CR" → change-request (sier cr)
+Step 6 → "Maintenance proposal, 24/7"         → maintenance-proposal (sier sla)
+Step 7 → "Run a retrospective"                → lessons-learned → sier calibrate add
+           (the next CRM estimate shows how this one ran against its estimate)
 ```
 
 ### Example 2: Quick Estimation Only
@@ -641,26 +700,41 @@ You:  "The client keeps asking for small changes without CRs.
 
 ## Output Formats
 
-| Skill | Primary Output | Format |
-|-------|---------------|--------|
-| rfp-notebook | Structured RFP Brief + Gaps list | .md |
-| rfp-analysis | Go/No-Go assessment report | .docx |
-| create-proposal | Full consulting proposal | .docx |
-| team-composition | Organization chart + staffing plan | .docx |
-| effort-estimation | WBS + effort breakdown | .docx |
-| cost-estimation | Cost breakdown + pricing | .docx |
-| technical-solution | Architecture document | .docx |
-| project-delivery | Project plan + governance | .docx |
-| proposal-presentation | Slide deck + Q&A prep | .pptx + .docx |
-| design-presentation | Visual slides via Claude Design | .html → Claude Design → .pptx |
-| progress-report | Weekly/monthly status report | .docx |
-| change-request | CR document + cumulative tracker | .docx |
-| vendor-management | Governance plan + RACI | .docx |
-| maintenance-proposal | Support contract proposal + SLA | .docx |
-| lessons-learned | Close-out report + KPT | .docx |
-| proposal-review | Review report + scorecard + revision checklist | .docx |
+| Skill | Primary output |
+|-------|----------------|
+| engagement-init | `engagement.json`, workspace folders |
+| rfp-notebook | `00-rfp-brief.json` (canonical) + `.md` (rendered) |
+| rfp-analysis | `01-go-nogo.json/.md` (sier score) + assessment .docx |
+| technical-solution | `02-architecture.md` + diagrams (.drawio/.png or mermaid) |
+| effort-estimation | `03-estimate.json/.md` (sier estimate); optional .xlsx |
+| team-composition | `04-team.json/.md` + 体制図 |
+| cost-estimation | `05-cost.json/.md` (sier cost); optional .xlsx |
+| project-delivery | `06-delivery-plan.md` |
+| create-proposal | `artifacts/proposal.docx` + compliance matrix |
+| presale-team | everything above, wave by wave |
+| proposal-presentation | .pptx + Q&A prep |
+| design-presentation | Claude Design canvas or HTML → .pptx |
+| progress-report | weekly/monthly .docx; `progress/evm-<date>.*` (sier evm) |
+| change-request | CR .docx; `progress/cr-report.*` (sier cr) |
+| vendor-management | governance plan + RACI .docx |
+| maintenance-proposal | proposal .docx; `07-sla.json/.md` (sier sla) |
+| lessons-learned | close-out .docx; calibration record (sier calibrate) |
+| proposal-review | `_state/review/*.md`, `consensus.md`, review .docx |
 
-All skills use the `docx` skill for Word output and the `pptx` skill for PowerPoint. Ensure these skills are installed.
+---
+
+## Testing
+
+```bash
+python3 -m unittest discover -s tests -t tests          # 60 engine tests, stdlib only
+claude plugin validate plugins/it-consulting-expert --strict
+cd plugins/it-consulting-expert && claude plugin eval . --tag smoke --runs 1 --ablation none \
+    --allow-tools Bash Write Edit                          # see evals/README.md
+```
+
+`tests/fixtures/abc-manufacturing/` turns the original dry run into engine inputs and pins what the engine
+found: its adjustment factors multiply to 1.20, not the 1.07 it printed; computed correctly the estimate is
+175.79 人月; priced to policy the bid is ¥233.25M, over the ¥200M budget it claimed to fit.
 
 ---
 
@@ -682,11 +756,11 @@ Enterprise (Fortune 500, 大企業), mid-market (中堅企業), and startup enga
 
 ## Tips & Best Practices
 
-**Always start with rfp-notebook.** Before any analysis or proposal work, run the full extraction. The structured RFP Brief it produces is consumed by every other skill, ensuring consistency and preventing each skill from independently re-querying NotebookLM.
+**Start with engagement-init, then rfp-notebook.** Before any analysis or proposal work, run the full extraction. The structured RFP Brief it produces is consumed by every other skill, ensuring consistency and preventing each skill from independently re-querying NotebookLM.
 
 **Then run rfp-analysis.** Even when you're confident about a bid, the structured scoring often reveals risks you'd otherwise miss. A 15-minute Go/No-Go saves weeks of wasted proposal effort on bad deals.
 
-**Let create-proposal orchestrate.** Rather than running each skill separately, start with create-proposal. It queries NotebookLM comprehensively and calls the sub-skills in the right order. Run individual skills only when you need to iterate on a specific section.
+**Let presale-team orchestrate.** For a whole bid, run presale-team; it calls the skills in dependency order, checks each wave with the engine and stops for your decisions. Run individual skills to iterate on one artifact.
 
 **Upload all RFP attachments.** Add the main RFP document plus all appendices, Q&A responses, amendments, and clarification documents to the same NotebookLM notebook. More source material = more accurate extraction.
 
@@ -694,7 +768,11 @@ Enterprise (Fortune 500, 大企業), mid-market (中堅企業), and startup enga
 
 **Track changes cumulatively.** Individual CRs look harmless. The change-request skill's cumulative tracker reveals scope creep that's invisible one CR at a time. Show clients the dashboard regularly.
 
-**Run lessons-learned within 2 weeks of go-live.** Memories fade fast. The estimation accuracy data from retrospectives is gold — it calibrates your future effort-estimation results.
+**Run lessons-learned within 2 weeks of go-live.** It records estimate vs actual with `sier calibrate`, and every later estimate of the same project type shows that track record.
+
+**Replace the benchmark rate card.** `sier ratecard init` writes market midpoints so you can start; the engine warns on every price until you put in your firm's real rates.
+
+**Run `sier verify` before submission.** It is the one check that proves the numbers in the documents are the numbers the engine computed.
 
 **Language defaults to Japanese** for all formal documents (keigo style). Add "in English" to your prompt to switch. The plugin supports bilingual output for international engagements.
 
@@ -702,6 +780,6 @@ Enterprise (Fortune 500, 大企業), mid-market (中堅企業), and startup enga
 
 ## Version
 
-- Plugin version: 1.3.0
-- Skills: 16
+- Plugin version: 2.0.0 (see `CHANGELOG.md`)
+- Skills: 18 · Agents: 14 · Engine: sier
 - Author: Neo

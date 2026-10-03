@@ -12,8 +12,6 @@ description: >
   Claude Design for presentation work. This skill complements proposal-presentation
   — use proposal-presentation for content structure and Q&A prep, then this skill
   for visual polish via Claude Design.
-metadata:
-  version: "0.1.0"
 ---
 
 # Visual Presentation Designer (Claude Design連携プレゼン)
@@ -35,7 +33,12 @@ In Japanese enterprise bidding, visual quality signals professionalism. Two prop
 
 ### Step 0: Gather Proposal Content
 
-If the user hasn't already run `proposal-presentation`, prompt them to do so first. The content structure from that skill feeds this one.
+Run `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status` to find the engagement workspace. The slide content comes from
+the `proposal-presentation` output and the proposal in `artifacts/`; numbers come from `05-cost.md` and
+`03-estimate.md` (engine output — copy, never retype). If `proposal-presentation` hasn't run, run it first.
+
+If a `design` skill (Claude Design canvas) is available in this session, prefer it for the visual pass:
+it produces an editable canvas the user can refine by hand. The HTML workflow below is the fallback.
 
 Collect from the user or from the prior skill output:
 - **Slide outline** (15-slide structure from proposal-presentation)

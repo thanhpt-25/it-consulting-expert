@@ -1,7 +1,7 @@
 {
   "name": "it-consulting-expert",
-  "version": "1.2.0",
-  "description": "Full-lifecycle IT consulting expert for Japanese SIer engagements. Covers RFP analysis, proposals, team composition, effort/cost estimation, technical solutions, project delivery, presentations (Claude Design), progress reporting, change management, vendor management, maintenance contracts, lessons learned, and multi-perspective review board. NotebookLM integration for RFP-grounded, hallucination-free outputs.",
+  "version": "2.0.0",
+  "description": "Full-lifecycle IT consulting expert for Japanese SIer engagements: 18 skills, 14 agents and the sier calculation engine. One engagement workspace and one cited RFP extraction (NotebookLM) feed every skill; effort, cost, price, Go/No-Go, EVM, SLA and change figures are computed by tested code, never by the model; a presale agent team runs the bid with human gates and an independent review board checks it before submission.",
   "author": {
     "name": "thanhpt_25"
   },
@@ -27,6 +27,11 @@
     "visual-presentation",
     "proposal-review",
     "multi-perspective-review",
-    "quality-gate"
+    "quality-gate",
+    "engagement-workspace",
+    "calculation-engine",
+    "agent-team",
+    "presale",
+    "evals"
   ]
 }

@@ -9,8 +9,6 @@ description: >
   structure and govern relationships with external development partners.
   Also trigger for "再委託管理", "外注管理", "vendor onboarding",
   "partner selection", and any request to organize multi-company project teams.
-metadata:
-  version: "0.1.0"
 ---
 
 # Vendor Management (協力会社管理)
@@ -23,16 +21,30 @@ Most Japanese SIer projects involve subcontractors (協力会社) — sometimes 
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-Query the RFP for vendor-related requirements:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.staffing`, `constraints` (onsite, nationality, security clearance), `contract_terms` (再委託 conditions).
+4. **Upstream files:** `04-team.json` (which roles are subcontracted).
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for vendor-management`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "Does the RFP restrict or require specific subcontracting arrangements, including re-delegation (再委託) rules?" --json
-notebooklm ask "Are there data residency, security clearance, or location requirements that affect vendor selection?" --json
-notebooklm ask "Does the client require approval of subcontractors or key personnel?" --json
-notebooklm ask "What are the contractual terms around liability, IP ownership, and confidentiality for subcontractors?" --json
-notebooklm ask "Are there requirements for on-site presence, co-location, or specific work locations?" --json
+notebooklm ask "Does the RFP restrict or require specific subcontracting arrangements, including re-delegation (再委託) rules?" --json --notebook <notebook_id>
+notebooklm ask "Are there data residency, security clearance, or location requirements that affect vendor selection?" --json --notebook <notebook_id>
+notebooklm ask "Does the client require approval of subcontractors or key personnel?" --json --notebook <notebook_id>
+notebooklm ask "What are the contractual terms around liability, IP ownership, and confidentiality for subcontractors?" --json --notebook <notebook_id>
+notebooklm ask "Are there requirements for on-site presence, co-location, or specific work locations?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Vendor Structure Design
@@ -218,5 +230,19 @@ Generate as .docx (using the `docx` skill):
 - **Relationship over contract**: Good vendor relationships are built over multiple projects. Invest in them
 - **Transparency up, protection down**: Be transparent with your client about structure. Protect your subcontractors from direct client pressure
 - **Fair terms**: Pay vendors fairly and on time. Squeezing margins creates quality problems
+
+## Legal compliance — not covered by this skill
+
+Two areas of Japanese law decide whether a multi-vendor structure is lawful, and this skill does **not**
+yet give guidance on either. Flag them to the user and route contract structure through counsel:
+
+- **取適法 (中小受託取引適正化法)** — replaced 下請法 on **2026-01-01**. It renames the parties
+  (委託事業者 / 中小受託事業者), bans payment by 手形, adds an employee-count test for coverage, and prohibits
+  setting prices unilaterally without consultation. Obligations such as written orders and the 60-day
+  payment deadline carry over. Any 再委託 / 外注 arrangement priced or paid under old 下請法 assumptions
+  should be re-checked.
+- **偽装請負** — whether an offshore or 協力会社 arrangement is genuinely 請負 / 準委任 or is disguised
+  労働者派遣 depends on who directs the work day to day. The Bridge SE and RACI design in this skill affects
+  that answer.
 
 For vendor evaluation templates and contract checklists, read `references/vendor-templates.md`.

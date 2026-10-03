@@ -1,4 +1,13 @@
 # IT Consulting Expert Plugin — Dry Run Results
+
+> Go/No-Go scoring in this document follows the canonical rubric in
+> `plugins/it-consulting-expert/shared/policy.json` (6 dimensions).
+>
+> **This dry run was written before the calculation engine existed, and several of its numbers are wrong.**
+> The adjustment factors multiply to 1.20, not 1.07; the printed 132 人月 total applies neither; the 6% risk
+> premium is ¥11,196,000, not ¥11.4M; priced to policy the bid is ¥233.25M — over the ¥200M budget.
+> The text below is kept as written so the comparison stays visible. The recomputed figures, and the
+> tests that pin them, are in `tests/fixtures/abc-manufacturing/`.
 # ITコンサルティングエキスパートプラグイン — ドライラン結果
 
 ## Standard Scenario
@@ -48,8 +57,9 @@
 | Strategic Fit (戦略適合性) | 4 | 15% | 0.60 | 製造業はターゲット業界。追加案件の可能性（保守、フェーズ2のモバイル化）を持つ大口顧客。 |
 | Capability Match (技術適合性) | 4 | 25% | 1.00 | クラウド移行、CRM、SAP連携に強みあり。EDIにわずかなギャップがあるが、パートナーで補完可能。 |
 | Win Probability (受注確度) | 3 | 25% | 0.75 | 既存ベンダーの優位性なし。公平な競争環境。当社のSAP連携の実績が差別化要因となる。 |
-| Commercial Viability (収益性) | 3 | 20% | 0.60 | 見積り通りであれば2億円の一括請負で約18%の利益率が確保可能。データ移行のリスクプレミアムが必要。 |
-| Risk Profile (リスク) | 3 | 15% | 0.45 | 50万件のデータ移行は中程度のリスク。レガシーOracleシステムには文書化されていないビジネスロジックが存在する可能性あり。 |
+| Profitability (収益性) | 3 | 15% | 0.45 | 見積り通りであれば2億円の一括請負で約18%の利益率が確保可能。データ移行のリスクプレミアムが必要。 |
+| Delivery Risk (デリバリーリスク) | 3 | 10% | 0.30 | 50万件のデータ移行は中程度のリスク。レガシーOracleシステムには文書化されていないビジネスロジックが存在する可能性あり。 |
+| Resource Availability (リソース確保) | 3 | 10% | 0.30 | 製造業経験のあるシニアPMの確保が条件。EDI要員は協力会社で補完。 |
 | **Total (合計)** | | **100%** | **3.40** | |
 
 **Go/No-Go Recommendation: GO (条件付き)** (提案可否の推奨：GO（条件付き）)

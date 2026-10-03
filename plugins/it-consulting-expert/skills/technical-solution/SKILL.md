@@ -10,31 +10,45 @@ description: >
   produce technical feasibility assessments. Also trigger for "技術選定",
   "system design for proposal", "infrastructure design", "cloud architecture",
   "solution overview".
-metadata:
-  version: "0.2.0"
 ---
 
 # Technical Solution Design
 
 Create technical solution documents for IT consulting proposals, **grounded in RFP/RFQ technical requirements from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-The RFP defines what the client needs technically. Query NotebookLM for every technical constraint, integration requirement, NFR target, and platform mandate before designing anything. A beautiful architecture that ignores the RFP's technology constraints is a rejected proposal.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Technical Requirements from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `nonfunctional_requirements`, `constraints`, `integrations`, `data_migration`.
+4. **Upstream files:** `01-go-nogo.json` for capability gaps flagged at bid time.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for technical-solution`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
-notebooklm ask "What technology stack, platform, or framework requirements does the client specify or prefer?" --json
-notebooklm ask "List all system integration requirements — what external systems must this connect to and how?" --json
-notebooklm ask "What are the specific non-functional requirements with targets: performance (response time, throughput), availability (SLA %), scalability (user count), security standards?" --json
-notebooklm ask "What is the client's current IT infrastructure and technology landscape?" --json
-notebooklm ask "What security, compliance, or regulatory standards must the solution meet?" --json
-notebooklm ask "What data migration, conversion, or compatibility requirements exist?" --json
-notebooklm ask "Does the client specify any architectural preferences — microservices, cloud-native, on-premise, hybrid?" --json
-notebooklm ask "What are the disaster recovery, backup, or business continuity requirements?" --json
+notebooklm ask "What technology stack, platform, or framework requirements does the client specify or prefer?" --json --notebook <notebook_id>
+notebooklm ask "List all system integration requirements — what external systems must this connect to and how?" --json --notebook <notebook_id>
+notebooklm ask "What are the specific non-functional requirements with targets: performance (response time, throughput), availability (SLA %), scalability (user count), security standards?" --json --notebook <notebook_id>
+notebooklm ask "What is the client's current IT infrastructure and technology landscape?" --json --notebook <notebook_id>
+notebooklm ask "What security, compliance, or regulatory standards must the solution meet?" --json --notebook <notebook_id>
+notebooklm ask "What data migration, conversion, or compatibility requirements exist?" --json --notebook <notebook_id>
+notebooklm ask "Does the client specify any architectural preferences — microservices, cloud-native, on-premise, hybrid?" --json --notebook <notebook_id>
+notebooklm ask "What are the disaster recovery, backup, or business continuity requirements?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Additional Context
@@ -101,7 +115,17 @@ If the RFP is silent on a category → propose a reasonable target, marked as "P
 
 ### Step 3: Output
 
-Generate as a structured document section or standalone technical proposal. Include mermaid diagrams for architecture views.
+Save the solution document as `02-architecture.md` in the engagement workspace — effort-estimation,
+team-composition and the proposal writer all read it from there.
+
+- **Diagrams:** use the `drawio` skill when it is available (C4 context/container views, network and
+  deployment diagrams; export PNG for the proposal and keep the `.drawio` source in `artifacts/`).
+  Otherwise use mermaid.
+- **Trace every component to the Brief:** each NFR id (`NFR-*`) and integration id (`INT-*`) appears in the
+  NFR compliance table with how the design meets it. An NFR with no answer is a finding, not an omission.
+- **Ground cloud claims in vendor documentation.** For Azure designs, check service limits, SLAs and
+  Japan-region availability with the Microsoft Learn tools when they are connected; for AWS/GCP, cite the
+  provider's documentation. Don't quote an SLA percentage from memory.
 
 ## Key Principles
 
