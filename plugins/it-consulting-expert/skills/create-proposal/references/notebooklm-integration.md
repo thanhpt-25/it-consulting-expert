@@ -2,16 +2,21 @@
 
 ## Purpose
 
-NotebookLM serves as the **single source of truth** for all proposal-related data. Customer RFP/RFQ documents are uploaded there, and every skill in this plugin must extract information from NotebookLM rather than generating content from general knowledge. This prevents hallucination and ensures proposals are grounded in actual client requirements.
+NotebookLM holds the customer's RFP/RFQ and returns cited answers. Since v2.0, **`rfp-notebook` is the only
+skill that extracts from it**: it writes the cited answers into the engagement's RFP Brief
+(`00-rfp-brief.json`), and every other skill reads the Brief and queries NotebookLM only for gaps the Brief
+records. Canonical rules: `shared/notebooklm-contract.md` in the plugin.
 
 ## Architecture
 
 ```
 Customer RFP/RFQ → User uploads to NotebookLM → Notebook becomes source of truth
                                                          ↓
-                                              Skills query via `notebooklm ask`
+                                    rfp-notebook queries via `notebooklm ask … --json --notebook <id>`
                                                          ↓
-                                              Cited answers drive proposal content
+                                     00-rfp-brief.json (cited) → every other skill
+                                                         ↓
+                                     gaps only → targeted `notebooklm ask` → written back to the Brief
 ```
 
 ## Setup Flow
@@ -32,13 +37,9 @@ notebooklm source add ./rfp-document.pdf --json --notebook <notebook_id>
 notebooklm source wait <source_id> -n <notebook_id> --timeout 600
 ```
 
-### 2. Set Notebook Context
+### 2. Target the notebook explicitly on every command
 
-```bash
-notebooklm use <notebook_id>
-```
-
-**Prefer explicit targeting over `use`.** `notebooklm use` writes to a shared global context
+Do **not** run `notebooklm use`. `notebooklm use` writes to a shared global context
 (`~/.notebooklm/context.json`) that concurrent agents overwrite, so pass the notebook on every
 command instead. The two flags are **not** interchangeable:
 
