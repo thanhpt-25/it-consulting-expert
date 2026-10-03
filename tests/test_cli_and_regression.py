@@ -44,6 +44,16 @@ class RegressionABC(unittest.TestCase):
         self.assertEqual(c["labor_mm"], Dec("178"))
         self.assertTrue(c["reconciliation"]["within_tolerance"])
 
+    def test_matching_total_hides_role_shortfall(self):
+        # Found by the review-qcd agent in a live run, then made deterministic: QA 20 vs ~37.5 人月.
+        r = estimate.compute(fixture("abc-manufacturing", "estimate.json"))
+        c = cost.compute(fixture("abc-manufacturing", "cost-policy.json"), estimate=r)
+        qa = next(x for x in c["reconciliation"]["by_role"] if x["role"] == "QA")
+        self.assertTrue(qa["flag"])
+        self.assertLess(qa["team_mm"], qa["estimate_mm"])
+        self.assertTrue(any("short against the estimate's role allocation" in w and "QA" in w
+                            for w in c["findings"]["warnings"]))
+
     def test_dry_run_pricing_arithmetic(self):
         c = cost.compute(fixture("abc-manufacturing", "cost-as-dry-run.json"))
         self.assertEqual(c["labor_total"], Dec("169600000"))

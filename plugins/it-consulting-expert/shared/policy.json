@@ -70,6 +70,7 @@
     "round_to": 1000,
     "under_budget_warning": 0.20,
     "estimate_reconciliation_tolerance": 0.05,
+    "role_reconciliation": {"_about": "Per-role check: flag a role whose team 人月 differs from the estimate's allocation by more than this share AND by more than min_mm.", "tolerance": 0.25, "min_mm": 2},
     "maintenance_rate": {"default": 0.15, "range": [0.15, 0.20]}
   },
 

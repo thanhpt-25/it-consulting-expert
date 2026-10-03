@@ -26,170 +26,68 @@ The difference between a 60% win rate and an 80% win rate is often the quality o
 
 ## The Review Board
 
-### Six Reviewer Personas
+Each reviewer is a separate agent. Independence is structural: every reviewer runs in its own fresh
+context, reads the same artifacts, and never sees another reviewer's report. (Before v2.1 the six personas
+ran one after another in a single conversation, so each one read its predecessors' verdicts — the
+"independent review" this skill promised was not possible. Running them as agents fixes that.)
 
-Each persona operates independently with a distinct mandate, expertise, and set of biases. They review the same artifacts but look for different things.
+| Agent (`subagent_type`) | Persona | Scorecard dimension | Key question |
+|---|---|---|---|
+| `it-consulting-expert:review-business` | Business Strategist (事業戦略) | Business Alignment | Does winning this make us stronger? |
+| `it-consulting-expert:review-architect` | Technical Architect (技術アーキテクト) | Technical Soundness | Can we build this as specified? |
+| `it-consulting-expert:review-qcd` | QCD Controller (品質・コスト・納期) | QCD Balance | On time, on budget, at quality? |
+| `it-consulting-expert:review-risk` | Risk & Compliance (リスク・コンプライアンス) | Risk & Compliance | What's the worst case, and are we protected? |
+| `it-consulting-expert:review-client` | Client Advocate (顧客視点) | Client Readiness | Would the client feel confident choosing us? |
+| `it-consulting-expert:review-delivery` | Delivery PM (デリバリーPM) | Delivery Feasibility | Could I run this from day one? |
+| `it-consulting-expert:review-security` | Security Specialist — optional | Security | What would an attacker or auditor find? |
+| `it-consulting-expert:review-legal-ja` | Legal Counsel (Japan) — optional | Legal | What do the contract and the law say if it fails? |
 
----
-
-**1. Business Strategist (事業戦略レビューア)**
-- **Mandate:** Does this proposal make business sense — for us AND the client?
-- **Perspective:** Revenue, margin, strategic positioning, account growth, competitive differentiation
-- **Looks for:**
-  - Alignment between proposed solution and client's stated business objectives [RFP]
-  - Realistic profitability given the pricing and effort
-  - Strategic value beyond this single deal (follow-on potential, reference account)
-  - Competitive positioning — does this differentiate us or commoditize us?
-  - Risks to our company's reputation or brand
-- **Bias:** Tends to favor deals that build strategic relationships, even at lower margins. Will push back on technically elegant solutions that don't map to business outcomes.
-- **Key question:** "If we win this, does it make us stronger as a company?"
-
----
-
-**2. Technical Architect (技術アーキテクトレビューア)**
-- **Mandate:** Is the technical solution sound, feasible, and appropriately scoped?
-- **Perspective:** Architecture, technology choices, scalability, security, integration, technical debt
-- **Looks for:**
-  - Architecture patterns appropriate for the stated requirements [RFP]
-  - Technology choices justified by concrete criteria, not just familiarity
-  - NFR coverage: performance, availability, security, scalability targets achievable
-  - Integration complexity realistically assessed
-  - Technical risks identified and mitigated
-  - Over-engineering or under-engineering relative to actual requirements
-- **Bias:** Tends to favor robust, proven architectures over cutting-edge. Will push for more thorough technical investigation time. May over-specify when simple solutions suffice.
-- **Key question:** "Can we actually build this as specified, on time, without cutting corners that'll haunt us?"
-
----
-
-**3. QCD Controller (品質・コスト・納期レビューア)**
-- **Mandate:** Are quality, cost, and delivery in balance and realistic?
-- **Perspective:** Project triangle — scope vs. budget vs. timeline. Estimation accuracy, resource feasibility, quality assurance adequacy
-- **Looks for:**
-  - Effort estimates grounded in historical data or defensible methodology
-  - Cost calculations using correct rates, with appropriate margins
-  - Timeline achievable given team size and dependencies
-  - Testing strategy sufficient for the quality targets
-  - Buffer/contingency adequate for the risk profile (typically 10-20%)
-  - Resource availability confirmed, not assumed
-  - Phase allocation ratios within industry norms
-- **Bias:** Conservative on estimates. Will always ask "what happens if this takes 30% longer?" Will push for contingency that others want to cut. Skeptical of aggressive timelines.
-- **Key question:** "If we commit to these numbers, will we deliver on time, on budget, and at quality — or are we setting ourselves up for a death march?"
-
----
-
-**4. Risk & Compliance Officer (リスク・コンプライアンスレビューア)**
-- **Mandate:** Have we identified all material risks and are we contractually protected?
-- **Perspective:** Risk management, contractual terms, regulatory compliance, liability exposure, data protection
-- **Looks for:**
-  - RFP compliance completeness — every mandatory requirement addressed
-  - Contractual risk: penalty clauses, liability caps, IP terms, warranty obligations
-  - Regulatory requirements: data residency, industry regulations, privacy laws
-  - Assumptions documented and flagged (hidden scope risk)
-  - Subcontractor risk: dependency on partners, their financial stability
-  - Force majeure and termination clause adequacy
-  - Insurance coverage appropriate for the engagement
-- **Bias:** Risk-averse. Will flag things others dismiss as unlikely. Will want stronger contractual language. May slow down the process with thoroughness. Prefers explicit over implicit.
-- **Key question:** "What's the worst that can happen, and are we protected?"
-
----
-
-**5. Client Advocate (顧客視点レビューア)**
-- **Mandate:** How will the client actually receive this? Does it answer THEIR questions?
-- **Perspective:** Client's evaluation criteria, their organizational politics, their decision-making process, their unspoken concerns
-- **Looks for:**
-  - Evaluation criteria coverage — are we scoring points on EVERY criterion?
-  - Client language — do we use their terminology from the RFP, or our jargon?
-  - Compliance matrix completeness — does every requirement have a clear response?
-  - Executive summary compelling for a non-technical decision-maker
-  - Evidence of understanding the client's pain (not just listing requirements)
-  - Differentiation clear and relevant — not generic "our team is experienced"
-  - Presentation flow optimized for their evaluation process
-  - Keigo level appropriate for the client's formality expectations
-- **Bias:** Empathetic to client concerns over internal optimization. Will push for clearer, simpler communication. May sacrifice technical precision for client comprehension. Values trust-building over feature-listing.
-- **Key question:** "If I were the client's evaluation committee, would this proposal make me feel confident choosing us?"
-
----
-
-**6. Delivery PM (デリバリーPMレビューア)**
-- **Mandate:** If we win, can the project team actually execute this plan?
-- **Perspective:** Practical delivery — team ramp-up, vendor coordination, methodology fit, knowledge transfer, governance overhead
-- **Looks for:**
-  - Team structure workable in practice, not just on paper
-  - Key personnel actually available (not double-booked)
-  - Methodology appropriate for the project type and client maturity
-  - Governance overhead proportional to project size
-  - Communication plan realistic (not 15 meetings per week)
-  - Vendor management structure clear and enforceable
-  - Transition from proposal team to delivery team planned
-  - Change management process defined before the first CR arrives
-  - Lessons from similar past projects incorporated
-- **Bias:** Practical and pragmatic. Will challenge theoretical frameworks that don't work in the field. Skeptical of plans that assume everything goes right. Values proven approaches over innovative ones.
-- **Key question:** "If someone handed me this plan on day one, could I actually run this project?"
-
----
+Each agent file holds that persona's mandate, perspective, bias, checklist pointer and report format.
+Add Security for sensitive data, government or financial clients; add Legal for large fixed-price deals,
+unusual terms or multi-vendor structures. The reviewers are read-only (`Read`, `Grep`, `Glob`).
 
 ## Workflow
 
-### Step 0: Identify Artifacts to Review
+### Step 0: Prepare the evidence
 
-Ask the user which artifacts should be reviewed. Typically:
+1. `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status` to find the workspace.
+2. **Run `python3 "${CLAUDE_PLUGIN_ROOT}/sier" verify`.** It recomputes every engine artifact from its
+   inputs and cross-checks estimate ↔ team ↔ cost ↔ budget, writing `_state/verify.md`. Reviewers judge
+   the numbers; the engine has already proved the arithmetic. A FAIL here is itself a Critical finding.
+3. Decide scope with the user if it isn't obvious: which artifacts (default — everything in the pipeline
+   that exists), and which optional reviewers.
 
-| Artifact | Source Skill | Priority |
-|----------|-------------|----------|
-| Proposal document | create-proposal | Must review |
-| Technical solution | technical-solution | Must review |
-| Effort estimation | effort-estimation | Must review |
-| Cost estimation | cost-estimation | Must review |
-| Team composition | team-composition | Should review |
-| Project delivery plan | project-delivery | Should review |
-| Presentation deck | proposal-presentation / design-presentation | Should review |
-| Maintenance proposal | maintenance-proposal | If applicable |
+Artifacts usually in scope: `artifacts/proposal.docx` (or `proposal-draft.md`), `02-architecture.md`,
+`03-estimate.md`, `04-team.md`, `05-cost.md`, `06-delivery-plan.md`, `01-go-nogo.md`, presentation decks,
+`07-sla.md` for maintenance bids. Client requirements come from `00-rfp-brief.json` — no NotebookLM
+queries are needed here.
 
-Also connect to NotebookLM to access the original RFP for compliance verification:
+### Step 1: Independent reviews — dispatch all reviewers at once
 
-```bash
-notebooklm ask "List all mandatory requirements and evaluation criteria from the RFP" --json --notebook <notebook_id>
-notebooklm ask "What are the submission requirements — format, deadline, mandatory sections?" --json --notebook <notebook_id>
-```
-
-### Step 1: Independent Reviews (独立レビュー)
-
-Each persona reviews ALL artifacts independently. They do NOT see each other's findings at this stage. This prevents groupthink and anchoring bias.
-
-For each persona, produce a structured review:
+Issue **one Agent call per reviewer, all in the same message**, so they run in parallel. Each prompt:
 
 ```
-## [Persona Name] Review
-
-### Summary Verdict: ✅ PASS / ⚠️ CONDITIONAL PASS / ❌ FAIL
-
-### Findings
-
-| # | Finding | Severity | Artifact | Recommendation |
-|---|---------|----------|----------|---------------|
-| 1 | [Issue description] | Critical / Major / Minor / Observation | [Which artifact] | [Specific fix] |
-| 2 | ... | ... | ... | ... |
-
-### Strengths Noted
-- [What's working well — important for morale and for knowing what to keep]
-
-### Risk Assessment
-- Overall risk level for this proposal: High / Medium / Low
-- Top concern: [One sentence]
+Workspace: <absolute path>
+Artifacts in scope: <list of relative paths>
+Engine verification: _state/verify.md (<PASS | FAIL — n problems>)
+Client: <name> — language of findings: <ja | en>
+Review independently and return your report in the format your instructions define.
 ```
 
-**Severity Definitions:**
+The prompt must not mention other reviewers' views, earlier review rounds, or what you expect them to find.
 
-| Severity | Definition | Action |
-|----------|-----------|--------|
-| Critical (致命的) | Will likely cause proposal rejection or project failure | Must fix before submission |
-| Major (重大) | Significantly weakens the proposal or creates material risk | Should fix before submission |
-| Minor (軽微) | Suboptimal but won't cause rejection | Fix if time permits |
-| Observation (所見) | Improvement opportunity, not a defect | Consider for future proposals |
+When the reports come back, save each one **verbatim** to `_state/review/<persona>.md`
+(`business.md`, `architect.md`, …) before reading across them. That file is the record of what each
+reviewer said independently.
+
+**If agents are unavailable on this surface:** run the personas one at a time in this conversation by
+reading each `agents/review-*.md` file from `${CLAUDE_PLUGIN_ROOT}`, writing each report to
+`_state/review/` before starting the next, and never re-reading earlier reports during later ones. State
+in the consensus report that the reviews were sequential and therefore not fully independent.
 
 ### Step 2: Cross-Review Conflict Detection (矛盾検出)
 
-After all six reviews complete, identify conflicts — findings where personas disagree:
+After every reviewer has reported, read across the saved reports and identify conflicts — findings where personas disagree:
 
 **Conflict Types:**
 
@@ -252,7 +150,7 @@ Produce the final consolidated review:
 |-------|-------|
 | Review Date | YYYY/MM/DD |
 | Artifacts Reviewed | [List] |
-| Review Board | 6 personas |
+| Review Board | <n> reviewers (agents, independent) |
 | Overall Verdict | ✅ READY / ⚠️ CONDITIONAL / ❌ NOT READY |
 
 **1. Executive Summary (総括)**
@@ -293,41 +191,31 @@ Patterns noticed that don't affect this proposal but should inform future ones. 
 
 ### Step 5: Revision Tracking (修正追跡)
 
-After the user makes revisions, the review board can re-review specific items:
-
-```
-User: "I've fixed items #1, #2, and #4. Can you verify?"
-
-→ Re-run ONLY the relevant personas on the changed artifacts
-→ Produce a delta report: "Fixed / Partially Fixed / Not Fixed"
-→ Update the consensus scorecard
-```
+After the user fixes items, re-run `sier verify`, then re-dispatch **only the reviewers whose findings
+were addressed**, on the changed artifacts, telling them which finding ids to check. Produce a delta
+report (Fixed / Partially fixed / Not fixed) and update the scorecard. Keep earlier rounds in
+`_state/review/round-<n>/`.
 
 ### Step 6: Output
 
-Generate as .docx (using the `docx` skill):
-1. **Full Review Report** (レビュー報告書) — all findings, debates, and consensus
-2. **Executive Summary** (エグゼクティブサマリー) — 1-page verdict for decision-makers
-3. **Revision Checklist** (修正チェックリスト) — actionable fix list with owners
+Save the consensus report as `_state/review/consensus.md` (this is what `sier status` looks for), then
+generate .docx with the `docx` skill:
+1. **Full Review Report** (レビュー報告書) — all findings, debates and consensus
+2. **Executive Summary** (エグゼクティブサマリー) — one-page verdict for decision-makers
+3. **Revision Checklist** (修正チェックリスト) — fixes with owners
 
-## Advanced: Custom Review Panels
+Patterns worth keeping for future bids go to `lessons-learned`.
 
-The default 6-persona board covers most proposals. For specialized engagements, add domain-specific reviewers:
+## Custom reviewers
 
-| Specialized Persona | When to Add | Focus |
-|--------------------|-------------|-------|
-| Security Specialist (セキュリティ専門家) | Projects with sensitive data, government, or financial clients | Threat modeling, compliance frameworks, data protection architecture |
-| Industry Expert (業界専門家) | Unfamiliar industry vertical | Industry-specific regulations, terminology, competitor landscape |
-| Legal Counsel (法務レビューア) | Complex contractual terms, international deals | Contract clause analysis, liability, IP ownership, data transfer |
-| UX/Design Reviewer (UXレビューア) | User-facing system proposals | User journey completeness, accessibility, design system coherence |
-| Data/AI Specialist (データ/AI専門家) | AI/ML or data platform proposals | Model feasibility, data quality assumptions, ethical AI, MLOps |
-| Financial Controller (財務レビューア) | Large deals (>¥100M) or fixed-price with thin margins | Cash flow, payment terms, revenue recognition, financial risk |
-
-To add a custom persona, define their mandate, perspective, bias, and key question following the same format as the core six.
+Beyond the two optional agents, add a specialist (Industry Expert, UX, Data/AI, Financial Controller)
+by copying an `agents/review-*.md` file in the plugin, changing its mandate, lens and dimension, and
+dispatching it alongside the others. Until such an agent exists, a custom persona can run in this
+conversation — note that it was not independent.
 
 ## Key Principles
 
-- **Independence first, consensus second**: Each persona must review alone before seeing others' findings. Groupthink kills review quality
+- **Independence first, consensus second**: Reviewers are separate agents that never see each other's reports; mediation happens only after all have reported
 - **Evidence over opinion**: Every finding must cite a specific artifact section, RFP requirement, or industry benchmark. "I feel like the estimate is too low" is not a finding
 - **Severity discipline**: Not everything is Critical. Over-flagging trains the team to ignore findings
 - **Debate is productive**: Disagreement between personas is a FEATURE — it surfaces real trade-offs that single-perspective reviews miss

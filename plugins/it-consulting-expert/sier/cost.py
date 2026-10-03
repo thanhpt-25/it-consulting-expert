@@ -159,7 +159,24 @@ def compute(inp: dict, rate_card: dict | None = None, estimate: dict | None = No
         rel = safe_div(diff, est_mm) or D(0)
         tol = D(pol["estimate_reconciliation_tolerance"])
         recon = {"estimate_mm": est_mm, "labor_mm": labor_mm, "diff_mm": diff, "diff_ratio": rel,
-                 "within_tolerance": abs(rel) <= tol}
+                 "within_tolerance": abs(rel) <= tol, "by_role": []}
+        # Per role: a matching total can hide a team that is short on testers and long on managers.
+        rcfg = pol["role_reconciliation"]
+        est_roles = {r["role"]: D(r["recommended_mm"]) for r in estimate.get("roles") or []
+                     if not str(r["role"]).startswith(("UNASSIGNED", "UNALLOCATED"))}
+        team_roles: dict = {}
+        for ln in labor_lines:
+            team_roles[ln["role"]] = team_roles.get(ln["role"], D(0)) + ln["mm"]
+        for role in sorted(set(est_roles) | set(team_roles)):
+            e, t = est_roles.get(role, D(0)), team_roles.get(role, D(0))
+            d = t - e
+            flag = abs(d) > D(rcfg["min_mm"]) and (e == 0 or abs(d) / e > D(rcfg["tolerance"]))
+            recon["by_role"].append({"role": role, "estimate_mm": e, "team_mm": t, "diff_mm": d, "flag": flag})
+        short = [x for x in recon["by_role"] if x["flag"] and x["diff_mm"] < 0 and x["estimate_mm"] > 0]
+        if short:
+            f.warn("team is short against the estimate's role allocation: "
+                   + ", ".join(f"{x['role']} {num(x['team_mm'], 1)} vs {num(x['estimate_mm'], 1)} 人月" for x in short)
+                   + " — a matching total can hide missing testers or developers; rebalance or explain")
         if abs(rel) > tol:
             f.warn(f"labor plan totals {num(labor_mm, 1)} 人月 but the effort estimate recommends {num(est_mm, 1)} 人月 "
                    f"({'+' if diff > 0 else ''}{pct(rel)}) — the team plan and the estimate do not describe the same project")
@@ -272,6 +289,12 @@ def render(r: dict) -> str:
                          [[f"{num(rc['estimate_mm'], 1)} 人月", f"{num(rc['labor_mm'], 1)} 人月",
                            f"{'+' if rc['diff_mm'] > 0 else ''}{num(rc['diff_mm'], 1)} ({pct(rc['diff_ratio'])})",
                            "✅" if rc["within_tolerance"] else "❌"]], "rrrc"), ""]
+        if rc.get("by_role"):
+            out += ["By role (estimate allocation vs team plan):", "",
+                    md_table(["Role", "Estimate 人月", "Team 人月", "Difference", ""],
+                             [[x["role"], num(x["estimate_mm"], 1), num(x["team_mm"], 1),
+                               ("+" if x["diff_mm"] > 0 else "") + num(x["diff_mm"], 1), "⚠️" if x["flag"] else ""]
+                              for x in rc["by_role"]], "lrrrc"), ""]
     if r.get("payment_schedule"):
         out += ["## Payment schedule (支払条件)", "",
                 md_table(["Milestone", "%", "税抜", "税込"],
