@@ -25,13 +25,13 @@ If a NotebookLM notebook is available, extract the actual scope, features, and r
 ### Step 0: Extract Scope from NotebookLM
 
 ```bash
-notebooklm ask "List every feature, module, or functional requirement that needs to be built" --json
-notebooklm ask "List all non-functional requirements with specific targets (performance, availability, security)" --json
-notebooklm ask "What integrations with external systems are required? List each integration point" --json
-notebooklm ask "What data migration or conversion is needed? Describe the data volumes and sources" --json
-notebooklm ask "What timeline or deadline constraints does the client specify?" --json
-notebooklm ask "What technology stack is required or preferred?" --json
-notebooklm ask "What testing or quality requirements does the client specify?" --json
+notebooklm ask "List every feature, module, or functional requirement that needs to be built" --json --notebook <notebook_id>
+notebooklm ask "List all non-functional requirements with specific targets (performance, availability, security)" --json --notebook <notebook_id>
+notebooklm ask "What integrations with external systems are required? List each integration point" --json --notebook <notebook_id>
+notebooklm ask "What data migration or conversion is needed? Describe the data volumes and sources" --json --notebook <notebook_id>
+notebooklm ask "What timeline or deadline constraints does the client specify?" --json --notebook <notebook_id>
+notebooklm ask "What technology stack is required or preferred?" --json --notebook <notebook_id>
+notebooklm ask "What testing or quality requirements does the client specify?" --json --notebook <notebook_id>
 ```
 
 Use these extracted requirements as the WBS input. Every line item in the estimate must trace to an RFP requirement or be marked as "Proposed."

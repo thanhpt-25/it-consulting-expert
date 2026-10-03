@@ -1,0 +1,20 @@
+# Canonical Go/No-Go rubric for it-consulting-expert.
+# THE single source of truth. rfp-analysis/SKILL.md, its scoring-template.md,
+# and every worked example must read weights from here. Do not restate them elsewhere.
+version: 1
+scale: {min: 1, max: 5}
+dimensions:
+  - {id: strategic_fit,         en: Strategic Fit,         ja: 戦略適合性,       weight: 0.15}
+  - {id: capability_match,      en: Capability Match,      ja: 技術適合性,       weight: 0.25}
+  - {id: win_probability,       en: Win Probability,       ja: 受注確度,         weight: 0.25}
+  - {id: profitability,         en: Profitability,         ja: 収益性,           weight: 0.15}
+  - {id: delivery_risk,         en: Delivery Risk,         ja: デリバリーリスク, weight: 0.10}
+  - {id: resource_availability, en: Resource Availability, ja: リソース確保,     weight: 0.10}
+thresholds:
+  - {min: 4.0, verdict: STRONG_GO,      ja: 強く推奨,   action: prioritize this bid}
+  - {min: 3.0, verdict: CONDITIONAL_GO, ja: 条件付きGO, action: proceed only if stated conditions are met}
+  - {min: 2.0, verdict: LIKELY_NO_GO,   ja: 非推奨,     action: proceed only with executive sponsor approval}
+  - {min: 0.0, verdict: DEFINITE_NO_GO, ja: 見送り,     action: decline politely}
+mandatory_gate: >
+  If ANY mandatory RFP qualification is unmet with no credible workaround, the
+  recommendation is DEFINITE_NO_GO regardless of the weighted score.

@@ -31,7 +31,7 @@ The RFP must be in NotebookLM before analysis:
 ```bash
 notebooklm list --json
 notebooklm use <notebook_id>
-notebooklm source list --json
+notebooklm source list --json --notebook <notebook_id>
 ```
 
 ### Step 1: Extract Assessment Dimensions
@@ -40,34 +40,36 @@ Run these queries to build the evaluation picture:
 
 ```bash
 # Deal basics
-notebooklm ask "What is the project name, client name, estimated value, and submission deadline?" --json
+notebooklm ask "What is the project name, client name, estimated value, and submission deadline?" --json --notebook <notebook_id>
 
 # Scope and complexity
-notebooklm ask "Summarize the overall project scope, scale, and technical complexity" --json
+notebooklm ask "Summarize the overall project scope, scale, and technical complexity" --json --notebook <notebook_id>
 
 # Mandatory qualifications
-notebooklm ask "What mandatory qualifications, certifications, past experience, or eligibility requirements does the RFP specify? List ALL must-have criteria" --json
+notebooklm ask "What mandatory qualifications, certifications, past experience, or eligibility requirements does the RFP specify? List ALL must-have criteria" --json --notebook <notebook_id>
 
 # Evaluation criteria and weights
-notebooklm ask "How will proposals be evaluated? What scoring criteria, weights, or selection process does the client describe?" --json
+notebooklm ask "How will proposals be evaluated? What scoring criteria, weights, or selection process does the client describe?" --json --notebook <notebook_id>
 
 # Technology requirements
-notebooklm ask "What specific technologies, platforms, or technical capabilities are required?" --json
+notebooklm ask "What specific technologies, platforms, or technical capabilities are required?" --json --notebook <notebook_id>
 
 # Timeline
-notebooklm ask "What is the project timeline, go-live date, and any interim milestones?" --json
+notebooklm ask "What is the project timeline, go-live date, and any interim milestones?" --json --notebook <notebook_id>
 
 # Contract structure
-notebooklm ask "What contract type, pricing model, payment terms, or commercial structure does the RFP specify?" --json
+notebooklm ask "What contract type, pricing model, payment terms, or commercial structure does the RFP specify?" --json --notebook <notebook_id>
 
 # Incumbent and competitive signals
-notebooklm ask "Are there any references to an incumbent vendor, current system provider, or signals about competitive landscape?" --json
+notebooklm ask "Are there any references to an incumbent vendor, current system provider, or signals about competitive landscape?" --json --notebook <notebook_id>
 
 # Penalties and risks
-notebooklm ask "What penalty clauses, liquidated damages, warranty obligations, or unusual risk terms are mentioned?" --json
+notebooklm ask "What penalty clauses, liquidated damages, warranty obligations, or unusual risk terms are mentioned?" --json --notebook <notebook_id>
 ```
 
 ### Step 2: Score Each Dimension
+
+**Weights are defined once, in `shared/scoring-rubric.yaml`. Read that file — do not hardcode weights here or in any worked example.**
 
 Evaluate on a 1-5 scale across these dimensions:
 

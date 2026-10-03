@@ -26,14 +26,14 @@ The RFP often specifies methodology preferences, milestone expectations, reporti
 ### Step 0: Extract Delivery Requirements from NotebookLM
 
 ```bash
-notebooklm ask "Does the client specify a development methodology — waterfall, agile, hybrid, or other?" --json
-notebooklm ask "What milestones, phase gates, or checkpoint dates does the client expect?" --json
-notebooklm ask "What reporting, status updates, or governance meetings does the client require?" --json
-notebooklm ask "What quality assurance, testing, or acceptance criteria does the client define?" --json
-notebooklm ask "What risk management or escalation procedures does the client expect?" --json
-notebooklm ask "What document deliverables does the client require at each phase?" --json
-notebooklm ask "What communication channels, frequency, or stakeholder engagement does the client expect?" --json
-notebooklm ask "What change management or change request process does the client define?" --json
+notebooklm ask "Does the client specify a development methodology — waterfall, agile, hybrid, or other?" --json --notebook <notebook_id>
+notebooklm ask "What milestones, phase gates, or checkpoint dates does the client expect?" --json --notebook <notebook_id>
+notebooklm ask "What reporting, status updates, or governance meetings does the client require?" --json --notebook <notebook_id>
+notebooklm ask "What quality assurance, testing, or acceptance criteria does the client define?" --json --notebook <notebook_id>
+notebooklm ask "What risk management or escalation procedures does the client expect?" --json --notebook <notebook_id>
+notebooklm ask "What document deliverables does the client require at each phase?" --json --notebook <notebook_id>
+notebooklm ask "What communication channels, frequency, or stakeholder engagement does the client expect?" --json --notebook <notebook_id>
+notebooklm ask "What change management or change request process does the client define?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Select Methodology

@@ -28,12 +28,12 @@ Japanese SIer culture values continuous improvement (改善). A thorough lessons
 Query the original RFP and project documentation for baseline data:
 
 ```bash
-notebooklm ask "What were the original project objectives, scope, and success criteria?" --json
-notebooklm ask "What was the original timeline with milestones and delivery dates?" --json
-notebooklm ask "What was the original budget and effort estimate?" --json
-notebooklm ask "What were the key technical requirements and architecture decisions?" --json
-notebooklm ask "What team structure and staffing was originally proposed?" --json
-notebooklm ask "What were the identified risks in the original proposal?" --json
+notebooklm ask "What were the original project objectives, scope, and success criteria?" --json --notebook <notebook_id>
+notebooklm ask "What was the original timeline with milestones and delivery dates?" --json --notebook <notebook_id>
+notebooklm ask "What was the original budget and effort estimate?" --json --notebook <notebook_id>
+notebooklm ask "What were the key technical requirements and architecture decisions?" --json --notebook <notebook_id>
+notebooklm ask "What team structure and staffing was originally proposed?" --json --notebook <notebook_id>
+notebooklm ask "What were the identified risks in the original proposal?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Project Outcome Data

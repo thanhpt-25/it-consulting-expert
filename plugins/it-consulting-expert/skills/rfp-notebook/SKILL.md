@@ -96,25 +96,25 @@ Guide the user to add all relevant documents:
 
 **Primary RFP document:**
 ```bash
-notebooklm source add ./[filename] -n <notebook_id> --json
+notebooklm source add ./[filename] --notebook <notebook_id> --json
 ```
 
 **Additional sources (add all that apply):**
 ```bash
 # Appendices
-notebooklm source add ./appendix-a-technical-specs.pdf -n <notebook_id> --json
+notebooklm source add ./appendix-a-technical-specs.pdf --notebook <notebook_id> --json
 
 # Q&A clarifications
-notebooklm source add ./rfp-qa-responses.pdf -n <notebook_id> --json
+notebooklm source add ./rfp-qa-responses.pdf --notebook <notebook_id> --json
 
 # Amendments
-notebooklm source add ./amendment-1.pdf -n <notebook_id> --json
+notebooklm source add ./amendment-1.pdf --notebook <notebook_id> --json
 
 # Client website (for context)
-notebooklm source add "https://client-company.co.jp/about" -n <notebook_id> --json
+notebooklm source add "https://client-company.co.jp/about" --notebook <notebook_id> --json
 
 # Existing system documentation
-notebooklm source add ./current-system-overview.pdf -n <notebook_id> --json
+notebooklm source add ./current-system-overview.pdf --notebook <notebook_id> --json
 ```
 
 **Wait for processing:**
@@ -124,7 +124,7 @@ notebooklm source wait <source_id> -n <notebook_id> --timeout 600
 
 **Verify all sources ready:**
 ```bash
-notebooklm source list -n <notebook_id> --json
+notebooklm source list --notebook <notebook_id> --json
 ```
 
 All sources must show `"status": "ready"` before proceeding. If any source fails:
@@ -154,67 +154,67 @@ Execute the standard extraction query set. This is the core value of this skill 
 #### 3.1 Project Overview (案件概要)
 
 ```bash
-notebooklm ask "What is the project name, objective, and background? Why is the client undertaking this project now?" --json -n <notebook_id>
-notebooklm ask "What is the project scope? What is explicitly in-scope and out-of-scope?" --json -n <notebook_id>
-notebooklm ask "What are the key success criteria or KPIs the client defines for this project?" --json -n <notebook_id>
+notebooklm ask "What is the project name, objective, and background? Why is the client undertaking this project now?" --json --notebook <notebook_id>
+notebooklm ask "What is the project scope? What is explicitly in-scope and out-of-scope?" --json --notebook <notebook_id>
+notebooklm ask "What are the key success criteria or KPIs the client defines for this project?" --json --notebook <notebook_id>
 ```
 
 #### 3.2 Requirements (要件)
 
 ```bash
-notebooklm ask "List all functional requirements mentioned in the RFP, organized by business area or module" --json -n <notebook_id>
-notebooklm ask "List all non-functional requirements: performance targets, security requirements, availability SLA, scalability needs, and accessibility standards" --json -n <notebook_id>
-notebooklm ask "What are the mandatory technology constraints, platform requirements, or integration standards?" --json -n <notebook_id>
-notebooklm ask "What data migration or conversion requirements are specified?" --json -n <notebook_id>
+notebooklm ask "List all functional requirements mentioned in the RFP, organized by business area or module" --json --notebook <notebook_id>
+notebooklm ask "List all non-functional requirements: performance targets, security requirements, availability SLA, scalability needs, and accessibility standards" --json --notebook <notebook_id>
+notebooklm ask "What are the mandatory technology constraints, platform requirements, or integration standards?" --json --notebook <notebook_id>
+notebooklm ask "What data migration or conversion requirements are specified?" --json --notebook <notebook_id>
 ```
 
 #### 3.3 Timeline & Milestones (スケジュール)
 
 ```bash
-notebooklm ask "What is the overall project timeline? Start date, end date, and any intermediate deadlines?" --json -n <notebook_id>
-notebooklm ask "What are the key milestones, phase gates, or checkpoint dates the client expects?" --json -n <notebook_id>
-notebooklm ask "What is the proposal submission deadline and format requirements?" --json -n <notebook_id>
+notebooklm ask "What is the overall project timeline? Start date, end date, and any intermediate deadlines?" --json --notebook <notebook_id>
+notebooklm ask "What are the key milestones, phase gates, or checkpoint dates the client expects?" --json --notebook <notebook_id>
+notebooklm ask "What is the proposal submission deadline and format requirements?" --json --notebook <notebook_id>
 ```
 
 #### 3.4 Budget & Commercial (予算・商務)
 
 ```bash
-notebooklm ask "Is there a stated budget range, budget ceiling, or budget constraints?" --json -n <notebook_id>
-notebooklm ask "What pricing model does the client prefer: fixed price, time and materials, or other?" --json -n <notebook_id>
-notebooklm ask "What payment terms, invoicing schedule, or financial conditions are specified?" --json -n <notebook_id>
+notebooklm ask "Is there a stated budget range, budget ceiling, or budget constraints?" --json --notebook <notebook_id>
+notebooklm ask "What pricing model does the client prefer: fixed price, time and materials, or other?" --json --notebook <notebook_id>
+notebooklm ask "What payment terms, invoicing schedule, or financial conditions are specified?" --json --notebook <notebook_id>
 ```
 
 #### 3.5 Technical Environment (技術環境)
 
 ```bash
-notebooklm ask "Describe the client's current IT systems, infrastructure, and technology stack mentioned in the document" --json -n <notebook_id>
-notebooklm ask "What integrations with existing systems are required? List each system and the integration type" --json -n <notebook_id>
-notebooklm ask "What security, compliance, or regulatory requirements are mentioned? Include industry-specific regulations" --json -n <notebook_id>
-notebooklm ask "What are the hosting, deployment, or infrastructure requirements (on-premises, cloud, hybrid)?" --json -n <notebook_id>
+notebooklm ask "Describe the client's current IT systems, infrastructure, and technology stack mentioned in the document" --json --notebook <notebook_id>
+notebooklm ask "What integrations with existing systems are required? List each system and the integration type" --json --notebook <notebook_id>
+notebooklm ask "What security, compliance, or regulatory requirements are mentioned? Include industry-specific regulations" --json --notebook <notebook_id>
+notebooklm ask "What are the hosting, deployment, or infrastructure requirements (on-premises, cloud, hybrid)?" --json --notebook <notebook_id>
 ```
 
 #### 3.6 Team & Process (体制・プロセス)
 
 ```bash
-notebooklm ask "What team structure, roles, or staffing requirements does the client specify or prefer?" --json -n <notebook_id>
-notebooklm ask "Does the client prefer a specific development methodology (waterfall, agile, hybrid)? What governance is expected?" --json -n <notebook_id>
-notebooklm ask "What reporting, communication, or meeting cadence does the client expect?" --json -n <notebook_id>
+notebooklm ask "What team structure, roles, or staffing requirements does the client specify or prefer?" --json --notebook <notebook_id>
+notebooklm ask "Does the client prefer a specific development methodology (waterfall, agile, hybrid)? What governance is expected?" --json --notebook <notebook_id>
+notebooklm ask "What reporting, communication, or meeting cadence does the client expect?" --json --notebook <notebook_id>
 ```
 
 #### 3.7 Evaluation & Submission (評価・提出)
 
 ```bash
-notebooklm ask "What evaluation criteria will the client use to assess proposals? List with weights if provided" --json -n <notebook_id>
-notebooklm ask "What are the mandatory submission requirements: format, page count, sections, copies, delivery method?" --json -n <notebook_id>
-notebooklm ask "Are there mandatory qualifications, certifications, or references required from the vendor?" --json -n <notebook_id>
+notebooklm ask "What evaluation criteria will the client use to assess proposals? List with weights if provided" --json --notebook <notebook_id>
+notebooklm ask "What are the mandatory submission requirements: format, page count, sections, copies, delivery method?" --json --notebook <notebook_id>
+notebooklm ask "Are there mandatory qualifications, certifications, or references required from the vendor?" --json --notebook <notebook_id>
 ```
 
 #### 3.8 Risks & Constraints (リスク・制約)
 
 ```bash
-notebooklm ask "What risks, constraints, or assumptions does the RFP mention or imply?" --json -n <notebook_id>
-notebooklm ask "Are there penalty clauses, liquidated damages, or SLA breach consequences specified?" --json -n <notebook_id>
-notebooklm ask "What are the contract terms for IP ownership, warranty, and liability?" --json -n <notebook_id>
+notebooklm ask "What risks, constraints, or assumptions does the RFP mention or imply?" --json --notebook <notebook_id>
+notebooklm ask "Are there penalty clauses, liquidated damages, or SLA breach consequences specified?" --json --notebook <notebook_id>
+notebooklm ask "What are the contract terms for IP ownership, warranty, and liability?" --json --notebook <notebook_id>
 ```
 
 ### Step 4: Compile the Structured RFP Brief (RFPブリーフィング)
@@ -387,15 +387,15 @@ When the client issues amendments, Q&A responses, or clarifications after initia
 
 **Add new sources:**
 ```bash
-notebooklm source add ./amendment-2.pdf -n <notebook_id> --json
+notebooklm source add ./amendment-2.pdf --notebook <notebook_id> --json
 notebooklm source wait <source_id> -n <notebook_id> --timeout 600
 ```
 
 **Run delta extraction — query only what the amendment affects:**
 ```bash
-notebooklm ask "What changes does the latest amendment make to the original RFP requirements?" --json -n <notebook_id>
-notebooklm ask "Does the amendment change the timeline, budget, or evaluation criteria?" --json -n <notebook_id>
-notebooklm ask "Are there new requirements added or existing requirements removed by this amendment?" --json -n <notebook_id>
+notebooklm ask "What changes does the latest amendment make to the original RFP requirements?" --json --notebook <notebook_id>
+notebooklm ask "Does the amendment change the timeline, budget, or evaluation criteria?" --json --notebook <notebook_id>
+notebooklm ask "Are there new requirements added or existing requirements removed by this amendment?" --json --notebook <notebook_id>
 ```
 
 **Produce an Amendment Impact Report:**

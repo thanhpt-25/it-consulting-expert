@@ -40,14 +40,14 @@ Before any proposal work, establish the data source:
    ```
 4. Verify sources are ready:
    ```bash
-   notebooklm source list --json
+   notebooklm source list --json --notebook <notebook_id>
    ```
    All sources must show `"status": "ready"`. If not, wait with `notebooklm source wait`.
 
 If the user hasn't uploaded the RFP yet, help them:
 ```bash
 notebooklm create "RFP - [Client Name] - [Project Name]" --json
-notebooklm source add ./rfp-document.pdf --json
+notebooklm source add ./rfp-document.pdf --json --notebook <notebook_id>
 notebooklm source wait <source_id> -n <notebook_id> --timeout 600
 ```
 
@@ -57,37 +57,37 @@ Run these extraction queries to build a complete picture. Use `--json` on every 
 
 ```bash
 # Project overview
-notebooklm ask "What is the project name, client name, and overall objective described in this RFP?" --json
+notebooklm ask "What is the project name, client name, and overall objective described in this RFP?" --json --notebook <notebook_id>
 
 # Scope
-notebooklm ask "List all items that are in-scope and out-of-scope for this project" --json
+notebooklm ask "List all items that are in-scope and out-of-scope for this project" --json --notebook <notebook_id>
 
 # Functional requirements
-notebooklm ask "List all functional requirements, features, or capabilities the client expects" --json
+notebooklm ask "List all functional requirements, features, or capabilities the client expects" --json --notebook <notebook_id>
 
 # Non-functional requirements
-notebooklm ask "List all non-functional requirements: performance targets, security requirements, availability SLAs, scalability needs, compliance standards" --json
+notebooklm ask "List all non-functional requirements: performance targets, security requirements, availability SLAs, scalability needs, compliance standards" --json --notebook <notebook_id>
 
 # Technical constraints
-notebooklm ask "What technology constraints, platform requirements, or integration needs does the client specify?" --json
+notebooklm ask "What technology constraints, platform requirements, or integration needs does the client specify?" --json --notebook <notebook_id>
 
 # Timeline and milestones
-notebooklm ask "What timeline, deadlines, milestones, or phase expectations does the client state?" --json
+notebooklm ask "What timeline, deadlines, milestones, or phase expectations does the client state?" --json --notebook <notebook_id>
 
 # Budget
-notebooklm ask "What budget range, cost constraints, or pricing expectations are mentioned?" --json
+notebooklm ask "What budget range, cost constraints, or pricing expectations are mentioned?" --json --notebook <notebook_id>
 
 # Evaluation criteria
-notebooklm ask "How will the client evaluate proposals? What are the scoring criteria or selection factors?" --json
+notebooklm ask "How will the client evaluate proposals? What are the scoring criteria or selection factors?" --json --notebook <notebook_id>
 
 # Team / methodology preferences
-notebooklm ask "Does the client specify team size, roles, development methodology preferences, or delivery model requirements?" --json
+notebooklm ask "Does the client specify team size, roles, development methodology preferences, or delivery model requirements?" --json --notebook <notebook_id>
 
 # Deliverables
-notebooklm ask "What specific deliverables, documents, or artifacts does the client expect?" --json
+notebooklm ask "What specific deliverables, documents, or artifacts does the client expect?" --json --notebook <notebook_id>
 
 # Current state
-notebooklm ask "Describe the client's current IT systems, infrastructure, or business processes mentioned in the document" --json
+notebooklm ask "Describe the client's current IT systems, infrastructure, or business processes mentioned in the document" --json --notebook <notebook_id>
 ```
 
 Store all extracted data before proceeding. Every answer comes with citations — use them.

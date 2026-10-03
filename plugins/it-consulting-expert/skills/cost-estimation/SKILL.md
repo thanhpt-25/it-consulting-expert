@@ -25,11 +25,11 @@ If a NotebookLM notebook is available, extract budget constraints, pricing requi
 ### Step 0: Extract Financial Context from NotebookLM
 
 ```bash
-notebooklm ask "What budget range, cost ceiling, or financial constraints does the client state?" --json
-notebooklm ask "What pricing model does the client prefer — fixed price, time and materials, or other?" --json
-notebooklm ask "What payment terms, invoicing schedule, or financial milestones does the client specify?" --json
-notebooklm ask "Are there any cost-related evaluation criteria? Does the client weight price in proposal scoring?" --json
-notebooklm ask "What infrastructure, licensing, or third-party costs does the client expect the vendor to cover vs. provide themselves?" --json
+notebooklm ask "What budget range, cost ceiling, or financial constraints does the client state?" --json --notebook <notebook_id>
+notebooklm ask "What pricing model does the client prefer — fixed price, time and materials, or other?" --json --notebook <notebook_id>
+notebooklm ask "What payment terms, invoicing schedule, or financial milestones does the client specify?" --json --notebook <notebook_id>
+notebooklm ask "Are there any cost-related evaluation criteria? Does the client weight price in proposal scoring?" --json --notebook <notebook_id>
+notebooklm ask "What infrastructure, licensing, or third-party costs does the client expect the vendor to cover vs. provide themselves?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Additional Inputs from User

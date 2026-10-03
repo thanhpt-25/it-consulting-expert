@@ -150,8 +150,8 @@ Ask the user which artifacts should be reviewed. Typically:
 Also connect to NotebookLM to access the original RFP for compliance verification:
 
 ```bash
-notebooklm ask "List all mandatory requirements and evaluation criteria from the RFP" --json
-notebooklm ask "What are the submission requirements — format, deadline, mandatory sections?" --json
+notebooklm ask "List all mandatory requirements and evaluation criteria from the RFP" --json --notebook <notebook_id>
+notebooklm ask "What are the submission requirements — format, deadline, mandatory sections?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Independent Reviews (独立レビュー)

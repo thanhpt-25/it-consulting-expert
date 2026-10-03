@@ -27,12 +27,12 @@ If a NotebookLM notebook is available for this engagement, query it BEFORE propo
 If a notebook is available (ask the user, or reuse the notebook from `create-proposal`):
 
 ```bash
-notebooklm ask "What team structure, staffing requirements, or role specifications does the client define?" --json
-notebooklm ask "Does the client require specific certifications, clearances, or experience levels?" --json
-notebooklm ask "What is the expected delivery model — onsite, offshore, nearshore, or hybrid?" --json
-notebooklm ask "Does the client provide their own team members? What roles does the client fill vs. what the vendor must provide?" --json
-notebooklm ask "What is the project scope, scale, and timeline that should drive team sizing?" --json
-notebooklm ask "Are there any technology stack requirements that affect team skill needs?" --json
+notebooklm ask "What team structure, staffing requirements, or role specifications does the client define?" --json --notebook <notebook_id>
+notebooklm ask "Does the client require specific certifications, clearances, or experience levels?" --json --notebook <notebook_id>
+notebooklm ask "What is the expected delivery model — onsite, offshore, nearshore, or hybrid?" --json --notebook <notebook_id>
+notebooklm ask "Does the client provide their own team members? What roles does the client fill vs. what the vendor must provide?" --json --notebook <notebook_id>
+notebooklm ask "What is the project scope, scale, and timeline that should drive team sizing?" --json --notebook <notebook_id>
+notebooklm ask "Are there any technology stack requirements that affect team skill needs?" --json --notebook <notebook_id>
 ```
 
 Use extracted data to constrain all subsequent team planning.

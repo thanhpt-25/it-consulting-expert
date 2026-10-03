@@ -28,11 +28,11 @@ Most Japanese SIer projects involve subcontractors (協力会社) — sometimes 
 Query the RFP for vendor-related requirements:
 
 ```bash
-notebooklm ask "Does the RFP restrict or require specific subcontracting arrangements, including re-delegation (再委託) rules?" --json
-notebooklm ask "Are there data residency, security clearance, or location requirements that affect vendor selection?" --json
-notebooklm ask "Does the client require approval of subcontractors or key personnel?" --json
-notebooklm ask "What are the contractual terms around liability, IP ownership, and confidentiality for subcontractors?" --json
-notebooklm ask "Are there requirements for on-site presence, co-location, or specific work locations?" --json
+notebooklm ask "Does the RFP restrict or require specific subcontracting arrangements, including re-delegation (再委託) rules?" --json --notebook <notebook_id>
+notebooklm ask "Are there data residency, security clearance, or location requirements that affect vendor selection?" --json --notebook <notebook_id>
+notebooklm ask "Does the client require approval of subcontractors or key personnel?" --json --notebook <notebook_id>
+notebooklm ask "What are the contractual terms around liability, IP ownership, and confidentiality for subcontractors?" --json --notebook <notebook_id>
+notebooklm ask "Are there requirements for on-site presence, co-location, or specific work locations?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Vendor Structure Design

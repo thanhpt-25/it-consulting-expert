@@ -29,9 +29,9 @@ Japanese enterprise procurement typically involves a formal presentation where v
 Query the RFP for presentation-critical information:
 
 ```bash
-notebooklm ask "What is the proposal presentation format — time limit, number of attendees, presentation date, any format requirements?" --json
-notebooklm ask "What are the evaluation criteria and their weights for this proposal?" --json
-notebooklm ask "Who are the key decision-makers and what are their likely concerns — technical, business, or political?" --json
+notebooklm ask "What is the proposal presentation format — time limit, number of attendees, presentation date, any format requirements?" --json --notebook <notebook_id>
+notebooklm ask "What are the evaluation criteria and their weights for this proposal?" --json --notebook <notebook_id>
+notebooklm ask "Who are the key decision-makers and what are their likely concerns — technical, business, or political?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Inputs

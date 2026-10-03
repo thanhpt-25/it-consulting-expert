@@ -29,11 +29,11 @@ Scope creep kills SIer projects. Japanese enterprise clients expect formal chang
 Query the original RFP for baseline scope and change management expectations:
 
 ```bash
-notebooklm ask "What is the original project scope, deliverables list, and acceptance criteria?" --json
-notebooklm ask "Does the RFP specify a change management process, approval authority, or change control procedures?" --json
-notebooklm ask "What are the contractual terms regarding scope changes, additional costs, and timeline extensions?" --json
-notebooklm ask "What is the original project timeline with milestones and deadlines?" --json
-notebooklm ask "What is the original budget and pricing structure (fixed price, T&M, hybrid)?" --json
+notebooklm ask "What is the original project scope, deliverables list, and acceptance criteria?" --json --notebook <notebook_id>
+notebooklm ask "Does the RFP specify a change management process, approval authority, or change control procedures?" --json --notebook <notebook_id>
+notebooklm ask "What are the contractual terms regarding scope changes, additional costs, and timeline extensions?" --json --notebook <notebook_id>
+notebooklm ask "What is the original project timeline with milestones and deadlines?" --json --notebook <notebook_id>
+notebooklm ask "What is the original budget and pricing structure (fixed price, T&M, hybrid)?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Change Request Identification

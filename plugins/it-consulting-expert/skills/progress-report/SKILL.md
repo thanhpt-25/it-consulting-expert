@@ -27,8 +27,8 @@ In Japanese enterprise projects, the 進捗報告 is the primary trust mechanism
 If the original RFP is in NotebookLM, query for reporting requirements:
 
 ```bash
-notebooklm ask "What reporting format, frequency, or content does the client require?" --json
-notebooklm ask "What KPIs or metrics does the client want tracked in status reports?" --json
+notebooklm ask "What reporting format, frequency, or content does the client require?" --json --notebook <notebook_id>
+notebooklm ask "What KPIs or metrics does the client want tracked in status reports?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Current Status from User

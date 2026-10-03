@@ -27,14 +27,14 @@ The RFP defines what the client needs technically. Query NotebookLM for every te
 ### Step 0: Extract Technical Requirements from NotebookLM
 
 ```bash
-notebooklm ask "What technology stack, platform, or framework requirements does the client specify or prefer?" --json
-notebooklm ask "List all system integration requirements — what external systems must this connect to and how?" --json
-notebooklm ask "What are the specific non-functional requirements with targets: performance (response time, throughput), availability (SLA %), scalability (user count), security standards?" --json
-notebooklm ask "What is the client's current IT infrastructure and technology landscape?" --json
-notebooklm ask "What security, compliance, or regulatory standards must the solution meet?" --json
-notebooklm ask "What data migration, conversion, or compatibility requirements exist?" --json
-notebooklm ask "Does the client specify any architectural preferences — microservices, cloud-native, on-premise, hybrid?" --json
-notebooklm ask "What are the disaster recovery, backup, or business continuity requirements?" --json
+notebooklm ask "What technology stack, platform, or framework requirements does the client specify or prefer?" --json --notebook <notebook_id>
+notebooklm ask "List all system integration requirements — what external systems must this connect to and how?" --json --notebook <notebook_id>
+notebooklm ask "What are the specific non-functional requirements with targets: performance (response time, throughput), availability (SLA %), scalability (user count), security standards?" --json --notebook <notebook_id>
+notebooklm ask "What is the client's current IT infrastructure and technology landscape?" --json --notebook <notebook_id>
+notebooklm ask "What security, compliance, or regulatory standards must the solution meet?" --json --notebook <notebook_id>
+notebooklm ask "What data migration, conversion, or compatibility requirements exist?" --json --notebook <notebook_id>
+notebooklm ask "Does the client specify any architectural preferences — microservices, cloud-native, on-premise, hybrid?" --json --notebook <notebook_id>
+notebooklm ask "What are the disaster recovery, backup, or business continuity requirements?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Additional Context

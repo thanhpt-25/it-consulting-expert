@@ -29,12 +29,12 @@ In Japanese SIer business, maintenance contracts (保守契約) are the annuity 
 If the original RFP or project documentation is in NotebookLM, query for maintenance-relevant information:
 
 ```bash
-notebooklm ask "Does the RFP or contract include requirements for post-delivery maintenance, support, or warranty period?" --json
-notebooklm ask "What are the system's availability requirements, RPO, and RTO targets?" --json
-notebooklm ask "What is the technology stack, infrastructure, and deployment architecture?" --json
-notebooklm ask "What are the business-critical functions and peak usage periods?" --json
-notebooklm ask "Are there existing maintenance contracts or support structures being replaced?" --json
-notebooklm ask "What regulatory or compliance requirements affect system operations?" --json
+notebooklm ask "Does the RFP or contract include requirements for post-delivery maintenance, support, or warranty period?" --json --notebook <notebook_id>
+notebooklm ask "What are the system's availability requirements, RPO, and RTO targets?" --json --notebook <notebook_id>
+notebooklm ask "What is the technology stack, infrastructure, and deployment architecture?" --json --notebook <notebook_id>
+notebooklm ask "What are the business-critical functions and peak usage periods?" --json --notebook <notebook_id>
+notebooklm ask "Are there existing maintenance contracts or support structures being replaced?" --json --notebook <notebook_id>
+notebooklm ask "What regulatory or compliance requirements affect system operations?" --json --notebook <notebook_id>
 ```
 
 ### Step 1: Gather Maintenance Requirements
