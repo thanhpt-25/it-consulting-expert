@@ -73,39 +73,50 @@ Select roles that match the RFP's requirements. Read `references/role-catalog.md
 
 If the RFP mandates specific roles not in this list, include them. If the RFP excludes roles you'd normally recommend, note the omission as a risk.
 
-### Step 3: Determine Team Size
+### Step 3: Size the team from the estimate
 
-**Start from RFP constraints.** If the RFP states team size or budget, work within those bounds. Otherwise, apply these heuristics:
+**Start from `03-estimate.json`.** Its `roles` table gives the recommended 人月 per role — the team must
+deliver that effort, so the team's total 人月 has to land within policy tolerance of `recommended_mm`
+(cost-estimation checks this and flags any mismatch). RFP constraints (`team_process.staffing`) override
+the heuristics below; record which ones drove each role.
 
-- Small (1-3 months, 1-2 features): 3-5 members
-- Medium (3-6 months, moderate scope): 5-10 members
-- Large (6-12+ months, enterprise): 10-25 members
-- Enterprise program: multiple teams, 25+ with PMO
+Heuristics when the RFP is silent:
 
-**Seniority mix guidelines:**
-- Senior (7+ years): 20-30%
-- Mid-level (3-7 years): 40-50%
-- Junior (0-3 years): 20-30%
+- Small (1–3 months): 3–5 members · Medium (3–6): 5–10 · Large (6–12+): 10–25 · Programme: 25+ with PMO
+- Seniority mix: senior 20–30%, mid 40–50%, junior 20–30%
+- Ramp-up: core team (PM, TL, BA, 1–2 SE) for requirements and design → full team for build →
+  add QA, release developers for test → core team for transition
 
-**Ramp-up pattern:**
-- Phase 1 (requirements/design): small core — PM, TL, BA, 1-2 SE
-- Phase 2 (development): full team ramp-up
-- Phase 3 (testing): add QA, reduce some developers
-- Phase 4 (deployment/transition): scale down to core team
+Split each role's 人月 into lines by seniority and period: `count × months on the project × allocation`.
+A role that spans phases at different sizes gets one line per period.
 
-### Step 4: Output Format
+### Step 4: Write `04-team.json` and the org chart
 
-**Organization Chart (体制図)** — visual hierarchy using mermaid or text tree
+`04-team.json` is what cost-estimation prices, so its shape is fixed:
 
-**Staffing Table:**
-| Role | Count | Seniority | Allocation (%) | Duration | Skills Required | RFP Source |
-|------|-------|-----------|----------------|----------|-----------------|------------|
+```json
+{"lines": [
+  {"role": "PM", "seniority": "senior", "count": 1, "from_month": 1, "to_month": 18, "allocation": 1.0, "mm": 18,
+   "skills": "製造業CRM, SAP連携", "label": "RFP", "rfp_source": "RFP §5.2 — PMはPMP保有者"},
+  {"role": "SE", "seniority": "mid", "count": 3, "from_month": 2, "to_month": 15, "allocation": 1.0, "mm": 42,
+   "skills": "Java, React", "label": "Proposed", "rfp_source": null}
+ ],
+ "estimate_recommended_mm": 175.79,
+ "notes": "…"}
+```
 
-The **RFP Source** column is important — it traces each role back to the RFP requirement that drives it, or marks it as "Proposed" if it's your recommendation.
+- `role` uses the rate-card codes: PM, TL, BA, SE, PG, QA, INFRA, DEVOPS, SEC, UX, AIML, DBA, SM.
+- `mm` = count × (to_month − from_month + 1) × allocation. Check your arithmetic with a one-line
+  `python3 -c` sum of the lines before saving; the total must sit close to `estimate_recommended_mm`
+  (copied from `03-estimate.json`, not typed). If it doesn't, change the team — or go back and challenge the
+  estimate — but never leave the two disagreeing silently.
+- `label` / `rfp_source`: which RFP requirement drives the role, or `Proposed`.
 
-**Monthly Resource Histogram** — person-months per role across timeline
+Then write `04-team.md` for people:
 
-**Ramp-Up/Down Schedule** — when each role joins and leaves
+- **Org chart (体制図)** — use the `drawio` skill when available (export PNG for the proposal), otherwise mermaid
+- **Staffing table** — the lines above, with the RFP Source column
+- **Monthly resource histogram** and **ramp-up/down schedule**
 
 ## Key Principles
 

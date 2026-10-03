@@ -46,85 +46,54 @@ notebooklm ask "Are there any cost-related evaluation criteria? Does the client 
 notebooklm ask "What infrastructure, licensing, or third-party costs does the client expect the vendor to cover vs. provide themselves?" --json --notebook <notebook_id>
 ```
 
-### Step 1: Gather Additional Inputs from User
+### Step 1: Gather inputs from the workspace, not the user
 
-After extracting from the RFP:
-- **Effort estimate** (from `effort-estimation` skill or user-provided)
-- **Team composition** (from `team-composition` skill or user-provided)
-- **Your company's rate card** — use internal rates, not just market benchmarks
-- **Currency**: JPY, USD, or other
+- **Effort**: `03-estimate.json` (from `sier estimate`). Missing → run `effort-estimation` first.
+- **Team**: `04-team.json` — role, seniority and 人月 per line. Missing → run `team-composition`.
+- **Rates**: the firm's `_firm/rate-card.json`. Missing → `sier ratecard init` writes benchmark midpoints that
+  the engine flags on every run; tell the user a bid priced on benchmarks needs real rates before it goes out.
+- **Budget, pricing model, payment terms**: the Brief (`commercial`). The engine reads the budget itself.
+- Ask the user only for what none of these hold: non-labor items, a pricing-model preference the RFP left
+  open, the risk premium within the policy range.
 
-### Step 2: Labor Cost Calculation
+### Step 2: Write the cost input
 
-Read `references/rate-cards.md` for market rate benchmarks. Use the user's actual rates when provided — market rates are for sanity-checking only.
+`inputs/cost.json` (format: `${CLAUDE_PLUGIN_ROOT}/shared/engine.md`):
 
-**Calculation:**
+- `labor`: one line per `04-team.json` role/seniority with its 人月. Give `rate` only to override the rate card.
+- `non_labor`: infrastructure (monthly × months), licenses, travel (出張費), migration tools. Mark items the
+  RFP says the client supplies `"provided_by": "client"` — listed, not priced.
+- `pricing`: `fixed` (一括請負), `tm` (準委任) or `hybrid` with `fixed_share`; the risk premium for fixed work.
+  Use the model the RFP specifies; if it is silent, recommend one and say why.
+- `payment_schedule`: match the Brief's `timeline.milestones` when the RFP states them.
+- `tco` for infrastructure engagements (3- and 5-year view).
+
+### Step 3: Compute with the engine — never by hand
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" cost
 ```
-Labor Cost = Σ (Role Rate × Man-Months per Role)
-```
 
-| Role | Seniority | Monthly Rate | Man-Months | Subtotal | RFP Constraint |
-|------|-----------|-------------|------------|----------|----------------|
+It writes `05-cost.json` / `05-cost.md`: labor and non-labor tables, cost subtotal (総原価), management fee,
+risk premium, price 税抜 and 税込 (consumption tax from policy), gross margin, payment schedule, TCO, and two
+checks no prose estimate ever did reliably:
 
-The **RFP Constraint** column notes if the RFP caps rates, mandates seniority levels, or dictates team size.
+- **Budget fit** against the Brief's budget, on the right tax basis.
+- **Reconciliation**: does the team's total 人月 match the estimate's recommended 人月 (within policy
+  tolerance)? If not, the team plan and the estimate describe different projects — fix one of them.
 
-### Step 3: Non-Labor Costs
+Copy its tables into documents verbatim. **Never type, round or adjust a figure the engine produced.**
 
-**Infrastructure** (estimate monthly): Cloud services, dev/staging environments, CI/CD, monitoring
+### Step 4: Act on the findings
 
-**Licenses**: Dev tools, third-party APIs, security tools, database licenses
+- **Over budget** — do not shave the risk premium below policy to make it fit. Present options: phase the
+  scope, cut `should`/`may` requirements (the Brief has priorities), change the pricing model, or propose
+  the overrun with justification. That is the user's decision, with numbers for each option (re-run the
+  engine per option).
+- **Well under budget** — check for missed scope before celebrating.
+- **Risk premium or fee outside policy** — the engine says so. Keep it only with a stated reason.
 
-**Other**: Travel (出張費), training, hardware, data migration tools
-
-Note which costs the RFP says the client provides vs. expects from the vendor.
-
-### Step 4: Cost Structure by Phase
-
-| Phase | Labor | Infra | License | Other | Phase Total |
-|-------|-------|-------|---------|-------|-------------|
-
-### Step 5: Apply Pricing Model
-
-Use the model the RFP specifies. If unspecified, recommend with rationale.
-
-**Fixed Price (一括請負):**
-- Add risk premium: 15-25% on cost estimate
-- If RFP states a ceiling → work backward from it
-- Payment schedule: match RFP milestones if stated
-
-**T&M (準委任):**
-- Bill at agreed rates
-- Set budget caps if RFP requires
-- Include minimum commitment period
-
-**Hybrid:**
-- Fixed for well-defined phases, T&M for evolving scope
-
-### Step 6: Budget Fit Check
-
-**Critical**: Compare your total against the RFP's stated budget:
-- **Within budget**: Proceed normally
-- **Over budget**: Flag the gap, propose scope reductions or phasing options
-- **Under budget**: Verify you haven't missed scope items; the gap may indicate missed requirements
-
-### Step 7: Output
-
-**Cost Summary:**
-| Category | Amount | Notes |
-|----------|--------|-------|
-| Labor | ¥XX,XXX,XXX | X man-months total |
-| Infrastructure | ¥X,XXX,XXX | |
-| Licenses | ¥X,XXX,XXX | |
-| Other | ¥XXX,XXX | |
-| **Subtotal** | | |
-| Management Fee (10%) | | |
-| Risk Buffer (15%) | | |
-| **Grand Total** | | |
-| *RFP Budget* | *¥XX,XXX,XXX* | *Client's stated range* |
-
-**Payment Schedule** aligned to RFP milestones if stated.
-
-**TCO Analysis** (for infrastructure projects): 3-year and 5-year projection.
+**Spreadsheet.** For an Excel 見積書, build `artifacts/cost.xlsx` with the `xlsx` skill from `05-cost.json`.
 
 ## Key Principles
 

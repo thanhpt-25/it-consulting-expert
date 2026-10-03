@@ -68,6 +68,10 @@ notebooklm ask "What change management or change request process does the client
 
 **For Waterfall / Hybrid** (anchored to RFP milestones):
 
+Phase effort comes from `03-estimate.json` → `phases` (engine output). Convert effort to duration with the
+team plan in `04-team.json`, and anchor dates to the Brief's `timeline` milestones. The shares below are only
+a sanity reference — the authoritative typical ranges are in `shared/policy.json` (`estimation.phases`).
+
 | Phase | Japanese Name | Duration % | RFP Milestone | Gate Criteria |
 |-------|-------------|-----------|---------------|---------------|
 | Requirements | 要件定義 | 10-15% | [from RFP] | 要件定義書 approved |
@@ -125,7 +129,10 @@ Produce a project delivery plan containing:
 4. Quality assurance plan (covering RFP quality requirements)
 5. Risk register (grounded in actual project scope)
 6. Communication plan (matching RFP stakeholder expectations)
-7. Change management process
+7. Change management process — baseline and ledger handled by `change-request` (`sier cr`)
+
+Save it as `06-delivery-plan.md` in the engagement workspace. SPI/CPI and quality thresholds quoted in the
+plan must match `shared/policy.json` (`evm`) — the same thresholds progress reports will be measured against.
 
 ## Key Principles
 

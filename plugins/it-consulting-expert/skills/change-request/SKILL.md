@@ -158,31 +158,26 @@ Approval authority thresholds (typical):
 - Director approval: ¥1M–¥5M or 5–15 days impact
 - Executive approval: > ¥5M or > 15 days or go-live date change
 
-### Step 4: Cumulative Change Tracker (変更累積管理表)
+### Step 4: Cumulative Change Tracker (変更累積管理表) — computed
 
-Maintain a running ledger of all changes against the original baseline:
+Price the change itself through the engine so the CR's numbers are as defensible as the original bid:
+estimate the added work as WBS items and run `sier estimate --in <cr-estimate.json> --no-ws`, then
+`sier cost --in <cr-cost.json> --no-ws` with the same rate card and pricing model as the contract.
 
-**Cumulative Impact Dashboard:**
+Record the CR in the ledger and produce the cumulative report:
 
-| Metric | Original Baseline | Cumulative Changes | Current Forecast | Variance |
-|--------|-------------------|-------------------|-----------------|----------|
-| Timeline | X months | +Y days | X months + Y days | +Z% |
-| Budget | ¥XX,XXX,XXX | +¥X,XXX,XXX | ¥XX,XXX,XXX | +Z% |
-| Scope (requirements) | N items | +X / -Y | N+X-Y items | +Z% |
-| Effort (人月) | XX 人月 | +X 人月 | XX+X 人月 | +Z% |
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" cr add --in cr-001.json   # {"id","title","status","cost_delta","effort_delta_mm","schedule_delta_days","requirements_delta","go_live_changes"}
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" cr report
+```
 
-**Change Log:**
+The report measures **approved** changes against `engagement.json` → `baseline`, shows what pending CRs
+would add, applies the yellow/red gates, and names the approval authority each CR needs (PM / Director /
+Executive by cost, schedule days and go-live impact). All thresholds come from `shared/policy.json`.
+Re-adding a CR with the same id updates it (e.g. proposed → approved).
 
-| CR# | Date | Description | Status | Schedule | Cost | Requester |
-|-----|------|-------------|--------|----------|------|-----------|
-| CR-2024-001 | | | Approved | +3 days | +¥500K | Client |
-| CR-2024-002 | | | Rejected | — | — | Internal |
-| CR-2024-003 | | | Pending | +5 days | +¥1.2M | Client |
-
-**Warning Thresholds:**
-- 🟡 Yellow: Cumulative changes exceed 10% of original baseline (budget or timeline)
-- 🔴 Red: Cumulative changes exceed 20% — trigger contract amendment discussion
-- ⚠️ Critical: Cumulative changes affect go-live date — executive escalation required
+If the baseline isn't set yet, set it first (see `engagement-init`, "After award") — a ledger without a
+baseline can count changes but cannot tell you when they add up to a new contract.
 
 ### Step 5: Scope Creep Prevention
 

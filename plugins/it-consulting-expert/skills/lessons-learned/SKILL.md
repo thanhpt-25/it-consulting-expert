@@ -199,8 +199,24 @@ For organizational learning, track estimation accuracy over time:
 - 0.7–0.8 or 1.2–1.5: Needs improvement, analyze causes
 - < 0.7 or > 1.5: Significant estimation failure, deep-dive required
 
-**Estimation improvement recommendations:**
-Based on the variance analysis, suggest calibration factors for future projects of similar type/scale.
+**Feed the result back into future estimates.** Record the closed project in the firm's calibration file —
+this is what turns a retrospective into better bids:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" calibrate add --in calibration-record.json
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" calibrate show
+```
+
+```json
+{"project": "ABC-CRM", "project_type": "crm_migration", "estimated_mm": 175.8, "actual_mm": 201.0,
+ "estimated_cost": 233250000, "actual_cost": 251000000, "planned_margin": 0.20, "actual_margin": 0.13,
+ "closed": "2027-12-20"}
+```
+
+Take `estimated_mm` from `03-estimate.json` → `recommended_mm` and `estimated_cost` from `05-cost.json`
+(never from memory); actuals from the project's books. Use the same `project_type` label the estimate used —
+`effort-estimation` looks history up by it, and from the next bid of that type onward the estimate shows the
+firm's median actual/estimate ratio next to the raw figure.
 
 ### Step 7: Client Feedback Summary
 

@@ -231,4 +231,18 @@ Generate as .docx (using the `docx` skill):
 - **Transparency up, protection down**: Be transparent with your client about structure. Protect your subcontractors from direct client pressure
 - **Fair terms**: Pay vendors fairly and on time. Squeezing margins creates quality problems
 
+## Legal compliance — not covered by this skill
+
+Two areas of Japanese law decide whether a multi-vendor structure is lawful, and this skill does **not**
+yet give guidance on either. Flag them to the user and route contract structure through counsel:
+
+- **取適法 (中小受託取引適正化法)** — replaced 下請法 on **2026-01-01**. It renames the parties
+  (委託事業者 / 中小受託事業者), bans payment by 手形, adds an employee-count test for coverage, and prohibits
+  setting prices unilaterally without consultation. Obligations such as written orders and the 60-day
+  payment deadline carry over. Any 再委託 / 外注 arrangement priced or paid under old 下請法 assumptions
+  should be re-checked.
+- **偽装請負** — whether an offshore or 協力会社 arrangement is genuinely 請負 / 準委任 or is disguised
+  労働者派遣 depends on who directs the work day to day. The Bridge SE and RACI design in this skill affects
+  that answer.
+
 For vendor evaluation templates and contract checklists, read `references/vendor-templates.md`.

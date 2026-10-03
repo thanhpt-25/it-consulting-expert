@@ -91,13 +91,20 @@ Traffic light dashboard:
 | Phase/Task | Planned Start | Planned End | Actual Start | Actual End | Status | % Complete |
 |-----------|--------------|------------|-------------|-----------|--------|------------|
 
-**EVM Metrics (if tracked):**
-| Metric | Value | Interpretation |
-|--------|-------|---------------|
-| SPI (Schedule Performance Index) | | ≥1.0 = on/ahead of schedule |
-| CPI (Cost Performance Index) | | ≥1.0 = at/under budget |
-| EAC (Estimate at Completion) | | Projected final cost |
-| ETC (Estimate to Complete) | | Remaining cost |
+**EVM metrics — computed by the engine.** Put the cumulative figures at the status date in
+`inputs/evm-<date>.json` — `{"status_date", "bac", "pv", "ev", "ac"}`, or a `tasks` list with planned value,
+planned % and % complete — and run:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" evm --in inputs/evm-2026-10-31.json
+```
+
+It writes `progress/evm-<date>.json/.md` with SV, CV, SPI, CPI, EAC (three forecasts), ETC, VAC and TCPI,
+each colour-coded against the thresholds in `shared/policy.json` (from `references/report-templates.md`).
+Paste its table into the report. The **Schedule** and **Cost** lights in the dashboard must agree with
+the engine's colours — never report Green on a metric the engine marks Yellow or Red.
+
+**Change requests** in section 8 come from `python3 "${CLAUDE_PLUGIN_ROOT}/sier" cr report`.
 
 **3. This Week's Accomplishments (今週の実績)**
 1. [Completed item with result]

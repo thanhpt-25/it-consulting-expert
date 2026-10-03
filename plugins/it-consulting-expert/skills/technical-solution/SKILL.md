@@ -115,7 +115,17 @@ If the RFP is silent on a category → propose a reasonable target, marked as "P
 
 ### Step 3: Output
 
-Generate as a structured document section or standalone technical proposal. Include mermaid diagrams for architecture views.
+Save the solution document as `02-architecture.md` in the engagement workspace — effort-estimation,
+team-composition and the proposal writer all read it from there.
+
+- **Diagrams:** use the `drawio` skill when it is available (C4 context/container views, network and
+  deployment diagrams; export PNG for the proposal and keep the `.drawio` source in `artifacts/`).
+  Otherwise use mermaid.
+- **Trace every component to the Brief:** each NFR id (`NFR-*`) and integration id (`INT-*`) appears in the
+  NFR compliance table with how the design meets it. An NFR with no answer is a finding, not an omission.
+- **Ground cloud claims in vendor documentation.** For Azure designs, check service limits, SLAs and
+  Japan-region availability with the Microsoft Learn tools when they are connected; for AWS/GCP, cite the
+  provider's documentation. Don't quote an SLA percentage from memory.
 
 ## Key Principles
 

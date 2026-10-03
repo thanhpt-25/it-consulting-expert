@@ -126,13 +126,18 @@ Define the maintenance service offerings:
 | Workaround target | 1 hour | 2 hours | 1 business day | 3 business days |
 | Resolution target | 4 hours | 8 hours | 3 business days | 7 business days |
 
-**Availability SLA:**
+**Availability SLA — compute the downtime, don't quote it.** The allowed downtime depends on the
+measurement window, and getting that wrong is a contractual error:
 
-| Tier | Target | Allowed Downtime/Month | Measurement |
-|------|--------|----------------------|-------------|
-| Standard | 99.5% | ~3.6 hours | Business hours only |
-| Enhanced | 99.9% | ~43 minutes | 24/7 |
-| Premium | 99.95% | ~22 minutes | 24/7 |
+| Tier | Target | Window | Allowed downtime / month |
+|------|--------|--------|--------------------------|
+| Standard | 99.5% | Business hours (9h × 20 days = 180 h) | ≈ 54 minutes |
+| Enhanced | 99.9% | 24/7 (720 h) | ≈ 43 minutes |
+| Premium | 99.95% | 24/7 (720 h) | ≈ 22 minutes |
+
+(Earlier versions of this skill listed "~3.6 hours" for the business-hours tier. That is 99.5% of a 24/7
+month; over business hours it is 54 minutes.) Run `sier sla` for the exact figures for your tiers and
+windows — the windows are defined in `shared/policy.json` (`maintenance`).
 
 Exclusions: Planned maintenance windows, force majeure, client-caused issues, third-party service outages (outside our control).
 
@@ -188,11 +193,23 @@ Best for: Low-volume, non-critical systems
 | S3/S4 incident | ¥XX,XXX/incident |
 | Enhancement work | ¥XX,XXX/hour |
 
-**Pricing Guidelines:**
-- Annual maintenance typically 15-20% of original project cost
-- 24/7 support adds 40-60% to base support cost
-- Multi-year contracts: 5% discount for 3-year, 10% for 5-year commitment
-- Payment: Monthly invoicing, 30-day payment terms typical
+**Pricing — computed.** The guideline ranges (annual fee as a share of project cost, the 24/7 uplift,
+multi-year discounts) live in `shared/policy.json`. Write `inputs/sla.json` and run:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" sla
+```
+
+```json
+{"project_cost": 197796000, "maintenance_rate": 0.15, "support_24x7": true, "uplift_24x7": 0.5,
+ "contract_years": 3,
+ "availability_tiers": [{"id": "enhanced", "target": 99.9, "window": "24x7"}]}
+```
+
+`project_cost` is `05-cost.json` → `price_tax_excluded` (or the signed contract value) — copied, not typed.
+The engine writes `07-sla.json/.md`: allowed downtime per tier, annual and monthly fee, the multi-year total
+after discount, and service credits when you give it measured availability. Payment: monthly invoicing,
+30-day terms are typical.
 
 ### Step 6: Governance & Reporting
 
