@@ -1,5 +1,5 @@
-> **Canonical weights live in `shared/scoring-rubric.yaml`.** The percentages below are a
-> human-readable mirror. If they ever disagree, the YAML wins and this file is the bug.
+> **Canonical weights live in `shared/policy.json` (`rubric`), and `sier score` computes the total.**
+> The percentages below are a human-readable mirror. If they ever disagree, policy.json wins and this file is the bug.
 
 # Go/No-Go Scoring Template (案件評価テンプレート)
 

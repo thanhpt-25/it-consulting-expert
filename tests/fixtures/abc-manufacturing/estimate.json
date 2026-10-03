@@ -1,0 +1,83 @@
+{
+  "project_type": "crm_migration",
+  "method": "wbs",
+  "pm_overhead": 0.15,
+  "factors": {
+    "technical_complexity": 1.0,
+    "team_experience": 0.95,
+    "requirements_clarity": 1.1,
+    "integration_complexity": 1.15
+  },
+  "items": [
+    {
+      "id": "W-001",
+      "req": "FR-001",
+      "phase": "requirements",
+      "task": "requirements (phase total from dry run)",
+      "days": 240,
+      "role": "BA",
+      "confidence": "medium",
+      "label": "RFP"
+    },
+    {
+      "id": "W-002",
+      "req": "FR-001",
+      "phase": "basic_design",
+      "task": "basic_design (phase total from dry run)",
+      "days": 360,
+      "role": "SE",
+      "confidence": "medium",
+      "label": "RFP"
+    },
+    {
+      "id": "W-003",
+      "req": "FR-001",
+      "phase": "detailed_design",
+      "task": "detailed_design (phase total from dry run)",
+      "days": 320,
+      "role": "SE",
+      "confidence": "medium",
+      "label": "RFP"
+    },
+    {
+      "id": "W-004",
+      "req": "FR-001",
+      "phase": "implementation",
+      "task": "implementation (phase total from dry run)",
+      "days": 560,
+      "role": "PG",
+      "confidence": "medium",
+      "label": "RFP"
+    },
+    {
+      "id": "W-005",
+      "req": "FR-001",
+      "phase": "integration_test",
+      "task": "integration_test (phase total from dry run)",
+      "days": 280,
+      "role": "QA",
+      "confidence": "medium",
+      "label": "RFP"
+    },
+    {
+      "id": "W-006",
+      "req": "FR-001",
+      "phase": "system_test",
+      "task": "system_test (phase total from dry run)",
+      "days": 240,
+      "role": "QA",
+      "confidence": "medium",
+      "label": "RFP"
+    },
+    {
+      "id": "W-007",
+      "req": "FR-003",
+      "phase": "deployment",
+      "task": "deployment (phase total from dry run)",
+      "days": 120,
+      "role": "INFRA",
+      "confidence": "medium",
+      "label": "RFP"
+    }
+  ]
+}

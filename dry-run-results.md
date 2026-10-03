@@ -1,7 +1,13 @@
 # IT Consulting Expert Plugin — Dry Run Results
 
 > Go/No-Go scoring in this document follows the canonical rubric in
-> `plugins/it-consulting-expert/shared/scoring-rubric.yaml` (6 dimensions).
+> `plugins/it-consulting-expert/shared/policy.json` (6 dimensions).
+>
+> **This dry run was written before the calculation engine existed, and several of its numbers are wrong.**
+> The adjustment factors multiply to 1.20, not 1.07; the printed 132 人月 total applies neither; the 6% risk
+> premium is ¥11,196,000, not ¥11.4M; priced to policy the bid is ¥233.25M — over the ¥200M budget.
+> The text below is kept as written so the comparison stays visible. The recomputed figures, and the
+> tests that pin them, are in `tests/fixtures/abc-manufacturing/`.
 # ITコンサルティングエキスパートプラグイン — ドライラン結果
 
 ## Standard Scenario

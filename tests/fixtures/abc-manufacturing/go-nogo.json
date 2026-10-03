@@ -1,0 +1,13 @@
+{
+  "scores": {"strategic_fit": 4, "capability_match": 4, "win_probability": 3, "profitability": 3, "delivery_risk": 3, "resource_availability": 3},
+  "rationale": {
+    "strategic_fit": "製造業はターゲット業界。保守・フェーズ2の追加案件見込み",
+    "capability_match": "クラウド移行・CRM・SAP連携に強み。EDIはパートナーで補完",
+    "win_probability": "既存ベンダー優位なし。SAP連携実績が差別化",
+    "profitability": "一括請負で利益率は薄い（05-cost.json参照）",
+    "delivery_risk": "50万件移行と文書化されていないロジック",
+    "resource_availability": "製造業経験のあるシニアPMの確保が条件"
+  },
+  "mandatory": [{"requirement": "ISMS認証取得", "met": true, "evidence": "ISO27001 certificate on file"}],
+  "conditions": ["EDIパートナーの稼働確認", "提案前にレガシーデータ品質を確認", "製造業経験のあるシニアPMをアサイン"]
+}

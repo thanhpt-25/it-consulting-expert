@@ -69,7 +69,7 @@ notebooklm ask "What penalty clauses, liquidated damages, warranty obligations, 
 
 ### Step 2: Score Each Dimension
 
-**Weights are defined once, in `shared/scoring-rubric.yaml`. Read that file — do not hardcode weights here or in any worked example.**
+**Weights are defined once, in `shared/policy.json` (`rubric`). Do not hardcode weights here or in any worked example.**
 
 Evaluate on a 1-5 scale across these dimensions:
 
@@ -121,15 +121,8 @@ Evaluate on a 1-5 scale across these dimensions:
 
 **Scoring Matrix:**
 
-| Dimension | Score (1-5) | Weight | Weighted Score | Key Factors |
-|-----------|------------|--------|----------------|-------------|
-| Strategic Fit | | 15% | | |
-| Capability Match | | 25% | | |
-| Win Probability | | 25% | | |
-| Profitability | | 15% | | |
-| Delivery Risk | | 10% | | |
-| Resource Availability | | 10% | | |
-| **Total** | | 100% | **X.X / 5.0** | |
+The scoring matrix (dimension, score, weight, weighted score, rationale) is rendered by `sier score` from the
+weights in `shared/policy.json` — never typed by hand. See Step 3 for the command.
 
 **Decision Thresholds:**
 - **≥ 4.0**: Strong GO — prioritize this bid
