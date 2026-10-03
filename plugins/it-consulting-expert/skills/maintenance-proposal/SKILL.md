@@ -10,8 +10,6 @@ description: >
   Also trigger for "保守見積", "年間保守", "ヘルプデスク提案",
   "incident management plan", and any request to define post-delivery
   support structures, SLAs, or maintenance pricing.
-metadata:
-  version: "0.1.0"
 ---
 
 # Maintenance & Support Proposal (保守運用提案)
@@ -24,9 +22,23 @@ In Japanese SIer business, maintenance contracts (保守契約) are the annuity 
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-If the original RFP or project documentation is in NotebookLM, query for maintenance-relevant information:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `nonfunctional_requirements` (availability, performance), `integrations`, `contract_terms` (warranty).
+4. **Upstream files:** `05-cost.json` → `price_tax_excluded` (the project cost the maintenance rate applies to) and `02-architecture.md`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for maintenance-proposal`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "Does the RFP or contract include requirements for post-delivery maintenance, support, or warranty period?" --json --notebook <notebook_id>

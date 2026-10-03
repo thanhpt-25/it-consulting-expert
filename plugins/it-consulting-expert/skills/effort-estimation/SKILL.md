@@ -8,21 +8,35 @@ description: >
   timeline", "how many man-months", or needs to break down a project into tasks
   with duration estimates. Also trigger for "見積もり", "FP法", "function point",
   "COCOMO", and any request to estimate development time or resources.
-metadata:
-  version: "0.2.0"
 ---
 
 # Effort Estimation
 
 Produce structured effort estimates for IT projects, **grounded in RFP/RFQ scope from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-If a NotebookLM notebook is available, extract the actual scope, features, and requirements BEFORE estimating. Estimating from vague descriptions leads to inaccurate numbers. The RFP defines what needs to be built — that's the basis for every estimate.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Scope from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `functional_requirements`, `nonfunctional_requirements`, `integrations`, `data_migration`, `timeline`.
+4. **Upstream files:** `02-architecture.md` if it exists — the architecture determines integration and infrastructure work.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for effort-estimation`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "List every feature, module, or functional requirement that needs to be built" --json --notebook <notebook_id>
@@ -33,8 +47,6 @@ notebooklm ask "What timeline or deadline constraints does the client specify?" 
 notebooklm ask "What technology stack is required or preferred?" --json --notebook <notebook_id>
 notebooklm ask "What testing or quality requirements does the client specify?" --json --notebook <notebook_id>
 ```
-
-Use these extracted requirements as the WBS input. Every line item in the estimate must trace to an RFP requirement or be marked as "Proposed."
 
 ### Step 1: Additional Inputs from User
 

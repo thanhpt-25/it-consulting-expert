@@ -12,8 +12,6 @@ description: >
   "devil's advocate review", "提案品質チェック", "QCD review", and any request
   to evaluate proposal artifacts from business, technical, quality, cost, or
   client perspectives before client submission.
-metadata:
-  version: "0.1.0"
 ---
 
 # Multi-Perspective Proposal Review Board (多角的レビューボード)

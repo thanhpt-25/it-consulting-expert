@@ -8,23 +8,35 @@ description: >
   to determine roles, seniority mix, and resource allocation for a software,
   infrastructure, or transformation project. Also trigger for "resource plan",
   "staffing", "人員計画", "チーム構成".
-metadata:
-  version: "0.2.0"
 ---
 
 # Team Composition Planner
 
 Design optimal team structures for IT consulting engagements, **grounded in RFP/RFQ requirements from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-If a NotebookLM notebook is available for this engagement, query it BEFORE proposing any team structure. The RFP may specify required roles, team size constraints, onsite requirements, certifications, or client-side team members. Ignoring these means proposing a team the client will reject.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract RFP Team Requirements from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-If a notebook is available (ask the user, or reuse the notebook from `create-proposal`):
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.staffing`, `team_process.methodology`, `timeline`, `evaluation.mandatory_qualifications` (certifications).
+4. **Upstream files:** `03-estimate.json` → `roles` (recommended 人月 per role) and `02-architecture.md`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for team-composition`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "What team structure, staffing requirements, or role specifications does the client define?" --json --notebook <notebook_id>
@@ -34,8 +46,6 @@ notebooklm ask "Does the client provide their own team members? What roles does 
 notebooklm ask "What is the project scope, scale, and timeline that should drive team sizing?" --json --notebook <notebook_id>
 notebooklm ask "Are there any technology stack requirements that affect team skill needs?" --json --notebook <notebook_id>
 ```
-
-Use extracted data to constrain all subsequent team planning.
 
 ### Step 1: Gather Additional Context from User
 

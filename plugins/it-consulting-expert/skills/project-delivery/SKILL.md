@@ -9,21 +9,35 @@ description: >
   or needs to define how a project will be executed, managed, and delivered. Also
   trigger for "SDLC", "waterfall plan", "agile delivery", "hybrid methodology",
   "進捗管理", "WBS schedule".
-metadata:
-  version: "0.2.0"
 ---
 
 # Project Delivery Planning
 
 Define how an IT consulting project will be executed, **grounded in RFP/RFQ delivery requirements from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-The RFP often specifies methodology preferences, milestone expectations, reporting requirements, and governance structures. Extract these before proposing any delivery plan — proposing Agile when the client mandates Waterfall (or vice versa) is a fast path to rejection.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Delivery Requirements from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.methodology`, `team_process.governance`, `timeline`, `nonfunctional_requirements` (quality targets).
+4. **Upstream files:** `03-estimate.json` (phase effort) and `04-team.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for project-delivery`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "Does the client specify a development methodology — waterfall, agile, hybrid, or other?" --json --notebook <notebook_id>

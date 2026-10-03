@@ -9,8 +9,6 @@ description: >
   structure and govern relationships with external development partners.
   Also trigger for "再委託管理", "外注管理", "vendor onboarding",
   "partner selection", and any request to organize multi-company project teams.
-metadata:
-  version: "0.1.0"
 ---
 
 # Vendor Management (協力会社管理)
@@ -23,9 +21,23 @@ Most Japanese SIer projects involve subcontractors (協力会社) — sometimes 
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-Query the RFP for vendor-related requirements:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.staffing`, `constraints` (onsite, nationality, security clearance), `contract_terms` (再委託 conditions).
+4. **Upstream files:** `04-team.json` (which roles are subcontracted).
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for vendor-management`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "Does the RFP restrict or require specific subcontracting arrangements, including re-delegation (再委託) rules?" --json --notebook <notebook_id>

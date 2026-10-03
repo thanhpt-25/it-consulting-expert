@@ -8,21 +8,35 @@ description: >
   "total cost of ownership", or needs to produce financial projections for a
   project proposal. Also trigger for "予算", "単価", "pricing model", and any
   request involving project financials, billing structure, or cost-benefit analysis.
-metadata:
-  version: "0.2.0"
 ---
 
 # Cost Estimation
 
 Generate detailed cost breakdowns for IT consulting engagements, **grounded in RFP/RFQ budget constraints and scope from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-If a NotebookLM notebook is available, extract budget constraints, pricing requirements, and scope before calculating costs. A proposal priced above the client's stated budget (or using a pricing model they reject) wastes everyone's time.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Financial Context from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `commercial.budget`, `commercial.pricing_model`, `commercial.payment_terms`, `evaluation.criteria` (is price weighted?).
+4. **Upstream files:** `03-estimate.json` (effort to reconcile against) and `04-team.json` (labor lines).
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for cost-estimation`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "What budget range, cost ceiling, or financial constraints does the client state?" --json --notebook <notebook_id>

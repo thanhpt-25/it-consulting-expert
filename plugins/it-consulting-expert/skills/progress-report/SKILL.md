@@ -8,8 +8,6 @@ description: >
   status reports for client stakeholders. Also trigger for "ステータスレポート",
   "進捗管理", "status meeting preparation", and any request to summarize project
   progress, schedule variance, or defect trends for reporting purposes.
-metadata:
-  version: "0.1.0"
 ---
 
 # Progress Report Generator (進捗報告書)
@@ -22,9 +20,23 @@ In Japanese enterprise projects, the 進捗報告 is the primary trust mechanism
 
 ## Workflow
 
-### Step 0: Connect to NotebookLM (if applicable)
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
 
-If the original RFP is in NotebookLM, query for reporting requirements:
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `team_process.governance` (reporting cadence and format), `timeline.milestones`.
+4. **Upstream files:** `engagement.json` → `baseline`, previous reports in `progress/`, `_state/cr-ledger.json`.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for progress-report`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "What reporting format, frequency, or content does the client require?" --json --notebook <notebook_id>

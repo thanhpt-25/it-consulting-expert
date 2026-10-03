@@ -10,21 +10,35 @@ description: >
   produce technical feasibility assessments. Also trigger for "技術選定",
   "system design for proposal", "infrastructure design", "cloud architecture",
   "solution overview".
-metadata:
-  version: "0.2.0"
 ---
 
 # Technical Solution Design
 
 Create technical solution documents for IT consulting proposals, **grounded in RFP/RFQ technical requirements from NotebookLM**.
 
-## NotebookLM-First Rule
+## Grounding
 
-The RFP defines what the client needs technically. Query NotebookLM for every technical constraint, integration requirement, NFR target, and platform mandate before designing anything. A beautiful architecture that ignores the RFP's technology constraints is a rejected proposal.
+This skill reads the engagement's RFP Brief (`00-rfp-brief.json`) and never invents client requirements. Facts carry `[RFP]` / `[RFP+]` / `[Proposed]` labels as defined in `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`.
 
 ## Workflow
 
-### Step 0: Extract Technical Requirements from NotebookLM
+### Step 0: Load the engagement (Brief first — NotebookLM only for gaps)
+
+Follow the handoff contract in `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`:
+
+1. **Find the workspace:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status`. None → run `engagement-init` first.
+   (For a one-off question with no engagement, skip the workspace and label every assumption `[Proposed]`.)
+2. **Read `00-rfp-brief.json`.** If `sier status` says it is missing or **stale**, run `rfp-notebook` first —
+   do not extract the RFP yourself.
+3. **From the Brief this skill needs:** `nonfunctional_requirements`, `constraints`, `integrations`, `data_migration`.
+4. **Upstream files:** `01-go-nogo.json` for capability gaps flagged at bid time.
+5. **Gaps only:** `python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief gaps --for technical-solution`. If it reports no gaps, make
+   **no** NotebookLM calls. Otherwise query only for those gaps, per `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
+   (`--notebook <notebook_id> --json`, fallback ladder if NotebookLM is unreachable).
+6. **Write back** each answer into `00-rfp-brief.json` as a labelled, cited item, remove the gap, then run
+   `sier brief validate` and `sier brief render` so the next skill gets it free.
+
+**Gap queries** — starting points when the Brief is missing one of the fields above:
 
 ```bash
 notebooklm ask "What technology stack, platform, or framework requirements does the client specify or prefer?" --json --notebook <notebook_id>

@@ -12,144 +12,58 @@ description: >
   NotebookLM notebooks for consulting engagements. Also trigger for "notebooklm
   setup", "notebook管理", "source management", "ソース管理", and requests to
   produce a structured RFP brief from uploaded documents.
-metadata:
-  version: "0.1.0"
 ---
-
 # RFP Notebook Manager (RFP ノートブック管理)
 
-Automate the creation, source management, and structured extraction of RFP/RFQ content from NotebookLM — the "Step 0" that grounds every other skill in this plugin.
+Load the client's RFP/RFQ into NotebookLM, extract it once, systematically, and write the result as
+the engagement's **RFP Brief** (`00-rfp-brief.json`). This skill is the **only** one that extracts
+from the RFP. Every other skill reads the Brief and queries NotebookLM only for gaps the Brief
+records — that is what keeps the proposal, the estimate and the review describing the same project.
 
-## Why This Matters
+Contracts this skill follows:
+- Workspace and handoff: `${CLAUDE_PLUGIN_ROOT}/shared/engagement-workspace.md`
+- Brief schema and labels: `${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`
+- NotebookLM flags and fallback ladder: `${CLAUDE_PLUGIN_ROOT}/shared/notebooklm-contract.md`
 
-Every skill in the `it-consulting-expert` plugin depends on NotebookLM as the single source of truth. Before any proposal section can be written, the RFP must be uploaded, processed, and systematically queried. This skill automates that entire setup and extraction pipeline, producing a structured **RFP Brief** that all downstream skills consume.
+## Step 1: Workspace and notebook
 
-Without this skill, each skill independently asks the user "which notebook?" and runs ad-hoc queries. With this skill, there's one canonical setup process and one structured output that feeds everything else.
+1. `python3 "${CLAUDE_PLUGIN_ROOT}/sier" status` — no workspace → run `engagement-init` first.
+2. Find or create the notebook. Never use `notebooklm use`; pass `--notebook` on every command.
+   ```bash
+   notebooklm list --json
+   notebooklm create "RFP - [Client] - [Project]" --json     # only if none exists
+   ```
+   | Pattern | Example | When |
+   |---------|---------|------|
+   | `RFP - [Client] - [Project]` | `RFP - NTT Data - 基幹系統刷新` | Standard engagement |
+   | `RFQ - [Client] - [Project]` | `RFQ - MUFG - クラウド移行` | Quote request |
 
-```
-RFP/RFQ Documents → rfp-notebook → Structured RFP Brief
-                                         ↓
-                    ┌────────────────────────────────────────┐
-                    │ All other skills consume the brief:    │
-                    │ rfp-analysis, create-proposal,         │
-                    │ technical-solution, effort-estimation,  │
-                    │ cost-estimation, team-composition,      │
-                    │ project-delivery, proposal-review, ... │
-                    └────────────────────────────────────────┘
-```
+   One notebook per engagement — never mix RFPs.
+3. Write the id into `engagement.json` → `notebook_id`.
 
-## Workflow
+## Step 2: Load every source before extracting
 
-### Step 1: Identify or Create the Engagement Notebook
-
-Ask the user: "Do you already have a NotebookLM notebook for this engagement, or should I create one?"
-
-**If existing:**
-
-```bash
-notebooklm list --json
-```
-
-Display notebooks and let the user select. Confirm the selection:
+Upload the RFP plus **all** appendices, Q&A responses, amendments and current-system documents —
+extraction quality depends on completeness.
 
 ```bash
-notebooklm use <notebook_id>
-```
-
-**If new:**
-
-Ask for:
-- Client name (顧客名)
-- Project name (案件名)
-- RFP reference number (if any)
-
-Create with the naming convention:
-
-```bash
-notebooklm create "RFP - [Client Name] - [Project Name]" --json
-```
-
-**Naming Convention:**
-| Pattern | Example | When |
-|---------|---------|------|
-| `RFP - [Client] - [Project]` | `RFP - NTT Data - 基幹系統刷新` | Standard engagement |
-| `RFP - [Client] - [Project] - Amendment [N]` | `RFP - NTT Data - 基幹系統刷新 - Amendment 2` | When tracking amendment history separately |
-| `RFQ - [Client] - [Project]` | `RFQ - MUFG - クラウド移行` | Quote request (simpler scope) |
-
-Record the notebook ID for this engagement:
-
-```
-📒 Engagement Notebook Registry
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Client:      [Client Name]
-Project:     [Project Name]
-Notebook ID: [notebook_id]
-Created:     [YYYY/MM/DD]
-Sources:     [count] documents
-Status:      Active / Archived
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### Step 2: Upload and Process Sources
-
-Guide the user to add all relevant documents:
-
-**Primary RFP document:**
-```bash
-notebooklm source add ./[filename] --notebook <notebook_id> --json
-```
-
-**Additional sources (add all that apply):**
-```bash
-# Appendices
-notebooklm source add ./appendix-a-technical-specs.pdf --notebook <notebook_id> --json
-
-# Q&A clarifications
-notebooklm source add ./rfp-qa-responses.pdf --notebook <notebook_id> --json
-
-# Amendments
-notebooklm source add ./amendment-1.pdf --notebook <notebook_id> --json
-
-# Client website (for context)
-notebooklm source add "https://client-company.co.jp/about" --notebook <notebook_id> --json
-
-# Existing system documentation
-notebooklm source add ./current-system-overview.pdf --notebook <notebook_id> --json
-```
-
-**Wait for processing:**
-```bash
+notebooklm source add ./RFP.pdf --notebook <notebook_id> --json
+notebooklm source add ./appendix-a.pdf --notebook <notebook_id> --json
 notebooklm source wait <source_id> -n <notebook_id> --timeout 600
-```
-
-**Verify all sources ready:**
-```bash
 notebooklm source list --notebook <notebook_id> --json
 ```
 
-All sources must show `"status": "ready"` before proceeding. If any source fails:
-- Check file format is supported (PDF, DOCX, TXT, MD, URL, Google Docs)
-- Check file size limits
-- Retry the upload
+Proceed only when every source is `"status": "ready"`. Then set `engagement.json` →
+`sources_updated_at` to today. `sier status` uses it to flag a Brief that predates its sources.
 
-Display source summary:
-```
-📄 Sources Loaded
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# │ Source                        │ Status
-──┼───────────────────────────────┼───────
-1 │ RFP-2024-XXX.pdf              │ ✅ Ready
-2 │ Appendix-A-Technical.pdf      │ ✅ Ready
-3 │ QA-Responses-Round1.pdf       │ ✅ Ready
-4 │ Amendment-1.pdf               │ ⏳ Processing
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+**If NotebookLM is unreachable**, do not stop: follow the fallback ladder. At tier 3, read the files
+directly (`pdf` / `docx` skills or `Read`) and cite by section and page (`RFP §4.1 p.18`). Record the
+tier in the Brief's `source_tier` — downstream readers need to know.
 
-### Step 3: Run Structured Extraction (RFP分析抽出)
+## Step 3: Run the standard extraction (26 queries)
 
-Execute the standard extraction query set. This is the core value of this skill — a systematic, comprehensive extraction that no manual reading would match.
-
-**Run ALL queries in sequence.** Each query uses `--json` to get cited answers.
+Run all of them, each with `--json` so answers come back with `references[].cited_text`. Follow-ups
+for thin answers are in `references/extraction-catalog.md`.
 
 #### 3.1 Project Overview (案件概要)
 
@@ -217,280 +131,64 @@ notebooklm ask "Are there penalty clauses, liquidated damages, or SLA breach con
 notebooklm ask "What are the contract terms for IP ownership, warranty, and liability?" --json --notebook <notebook_id>
 ```
 
-### Step 4: Compile the Structured RFP Brief (RFPブリーフィング)
+## Step 4: Write the Brief as JSON
 
-Compile all extraction results into a single structured document — the **RFP Brief**. This is the canonical reference that all other skills consume.
+Map every answer into `00-rfp-brief.json` in the workspace, following
+`${CLAUDE_PLUGIN_ROOT}/shared/brief-schema.md`:
 
-```markdown
-# RFP Brief: [Client Name] - [Project Name]
-# RFPブリーフィング
+- **Requirements become rows with ids** — `FR-001…`, `NFR-001…`, `INT-001…`. Effort estimates, the
+  compliance matrix and the review board all trace to these ids, so number them once, here.
+- **Every fact gets a label.** `RFP` and `RFP+` need a citation — the `cited_text` NotebookLM returned
+  (tier 1–2) or section/page (tier 3). If you cannot cite it, it is `Proposed` or it is a gap.
+- **Budget is a number or null.** `{"amount": 200000000, "basis": "tax_excluded", …}`. Never turn
+  "around 2億" into a number without saying so in the text; never invent a basis.
+- **Silence is a gap, not a guess.** Anything a downstream skill needs and the RFP doesn't say becomes
+  a `gaps[]` entry with the question to ask the client and `blocks: [skills]`.
 
-**Generated:** YYYY/MM/DD
-**Notebook ID:** [notebook_id]
-**Sources:** [N] documents
-**Extraction Queries:** 26 standard queries executed
-
----
-
-## 1. Project Overview (案件概要)
-
-### 1.1 Background & Objectives [RFP]
-[Compiled from 3.1 queries, with citations]
-
-### 1.2 Scope [RFP]
-**In-Scope:**
-- [item] — [citation]
-
-**Out-of-Scope:**
-- [item] — [citation]
-
-**Ambiguous (clarification recommended):**
-- [item] — [why it's unclear]
-
-### 1.3 Success Criteria [RFP]
-[KPIs and acceptance criteria with citations]
-
----
-
-## 2. Requirements Summary (要件サマリー)
-
-### 2.1 Functional Requirements [RFP]
-| # | Requirement | Priority | Source |
-|---|------------|----------|--------|
-| FR-001 | [description] | Must/Should/May | [citation] |
-
-### 2.2 Non-Functional Requirements [RFP]
-| Category | Target | Source |
-|----------|--------|--------|
-| Performance | [target] | [citation] |
-| Availability | [target] | [citation] |
-| Security | [standard] | [citation] |
-| Scalability | [target] | [citation] |
-
-### 2.3 Technical Constraints [RFP]
-[Platform, technology, integration constraints]
-
-### 2.4 Data Migration [RFP]
-[Migration scope, volume, constraints]
-
----
-
-## 3. Timeline & Milestones (スケジュール)
-
-### 3.1 Key Dates [RFP]
-| Milestone | Date | Source |
-|-----------|------|--------|
-| Proposal submission | YYYY/MM/DD | [citation] |
-| Contract start | YYYY/MM/DD | [citation] |
-| Go-live | YYYY/MM/DD | [citation] |
-
-### 3.2 Phase Expectations [RFP]
-[Client-specified phases or milestones]
-
----
-
-## 4. Budget & Commercial (予算・商務)
-
-### 4.1 Budget [RFP]
-- Stated budget: [amount or "Not specified"]
-- Pricing preference: [fixed/T&M/hybrid or "Not specified"]
-- Payment terms: [terms or "Not specified"]
-
-### 4.2 Financial Constraints [RFP]
-[Any financial conditions, caps, or requirements]
-
----
-
-## 5. Technical Environment (技術環境)
-
-### 5.1 Current Systems [RFP]
-[Existing IT landscape the solution must fit into]
-
-### 5.2 Integration Requirements [RFP]
-| System | Integration Type | Protocol | Source |
-|--------|-----------------|----------|--------|
-| [name] | [type] | [protocol] | [citation] |
-
-### 5.3 Security & Compliance [RFP]
-[Regulatory requirements, certifications, data handling]
-
-### 5.4 Infrastructure [RFP]
-[Hosting, deployment, environment requirements]
-
----
-
-## 6. Team & Process (体制・プロセス)
-
-### 6.1 Staffing Requirements [RFP]
-[Client expectations for team structure]
-
-### 6.2 Methodology Preference [RFP]
-[Waterfall/Agile/Hybrid preference]
-
-### 6.3 Governance [RFP]
-[Reporting, meetings, communication expectations]
-
----
-
-## 7. Evaluation & Submission (評価・提出)
-
-### 7.1 Evaluation Criteria [RFP]
-| Criterion | Weight | Source |
-|-----------|--------|--------|
-| [criterion] | [%] | [citation] |
-
-### 7.2 Submission Requirements [RFP]
-[Format, deadline, mandatory sections, delivery method]
-
-### 7.3 Vendor Qualifications [RFP]
-[Required certifications, references, experience]
-
----
-
-## 8. Risks & Constraints (リスク・制約)
-
-### 8.1 Identified Risks [RFP]
-[Risks mentioned in the RFP]
-
-### 8.2 Contractual Terms [RFP]
-[Penalty clauses, IP, warranty, liability]
-
-### 8.3 Assumptions [Proposed]
-[Items not specified in RFP that we need to assume]
-
----
-
-## 9. Gaps & Clarification Needed (不明点・要確認事項)
-
-| # | Topic | Question | Priority |
-|---|-------|----------|----------|
-| Q-001 | [topic] | [question to ask client] | High/Medium/Low |
-
----
-
-## 10. Downstream Skill Readiness (スキル連携準備)
-
-| Skill | Key RFP Inputs Available | Gaps |
-|-------|-------------------------|------|
-| rfp-analysis | ✅ Evaluation criteria, budget, timeline | None |
-| create-proposal | ✅ All sections covered | [any gaps] |
-| technical-solution | ✅ Tech constraints, integrations, NFRs | [any gaps] |
-| effort-estimation | ✅ Requirements list, timeline | [any gaps] |
-| cost-estimation | ✅ Budget range, pricing preference | [any gaps] |
-| team-composition | ✅ Staffing requirements, methodology | [any gaps] |
-| project-delivery | ✅ Methodology, governance, milestones | [any gaps] |
-```
-
-### Step 5: Amendment & Update Management (追加資料管理)
-
-When the client issues amendments, Q&A responses, or clarifications after initial setup:
-
-**Add new sources:**
-```bash
-notebooklm source add ./amendment-2.pdf --notebook <notebook_id> --json
-notebooklm source wait <source_id> -n <notebook_id> --timeout 600
-```
-
-**Run delta extraction — query only what the amendment affects:**
-```bash
-notebooklm ask "What changes does the latest amendment make to the original RFP requirements?" --json --notebook <notebook_id>
-notebooklm ask "Does the amendment change the timeline, budget, or evaluation criteria?" --json --notebook <notebook_id>
-notebooklm ask "Are there new requirements added or existing requirements removed by this amendment?" --json --notebook <notebook_id>
-```
-
-**Produce an Amendment Impact Report:**
-```markdown
-# Amendment Impact Report
-**Amendment:** [Amendment N / Q&A Round N]
-**Date Added:** YYYY/MM/DD
-
-## Changes Detected
-| Section | Original | Changed To | Impact |
-|---------|----------|-----------|--------|
-| [section] | [was] | [now] | High/Medium/Low |
-
-## Affected Downstream Skills
-- [skill name]: [what needs updating]
-
-## Updated RFP Brief Sections
-[List which sections of the RFP Brief were updated]
-```
-
-### Step 6: Multi-Engagement Management (複数案件管理)
-
-For consultants handling multiple active engagements:
+Then validate and render — the Markdown is generated, never written by hand:
 
 ```bash
-notebooklm list --json
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief validate
+python3 "${CLAUDE_PLUGIN_ROOT}/sier" brief render
 ```
 
-Display an engagement dashboard:
+Fix every validation error before handing over. `render` also records `generated_at` and
+`source_tier` in `engagement.json` and adds a downstream-readiness table to the Markdown.
 
-```
-📒 Active Engagement Notebooks
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#  │ Client      │ Project          │ Sources │ Status
-───┼─────────────┼──────────────────┼─────────┼────────
-1  │ NTT Data    │ 基幹系統刷新     │ 5       │ Active
-2  │ MUFG        │ クラウド移行     │ 3       │ Active
-3  │ Toyota      │ DX推進基盤       │ 8       │ Brief Done
-4  │ Sony        │ ECサイト構築     │ 2       │ Archived
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+## Step 5: Amendments and Q&A rounds (追加資料管理)
 
-Switch engagement context:
-```bash
-notebooklm use <notebook_id>
-```
+1. Add the new source and wait for it (Step 2), then update `sources_updated_at`. From this moment
+   `sier status` reports the Brief as **stale** to every skill.
+2. Run delta queries only:
+   ```bash
+   notebooklm ask "What changes does the latest amendment make to the original RFP requirements?" --json --notebook <notebook_id>
+   notebooklm ask "Does the amendment change the timeline, budget, or evaluation criteria?" --json --notebook <notebook_id>
+   notebooklm ask "Are there new requirements added or existing requirements removed by this amendment?" --json --notebook <notebook_id>
+   ```
+3. Update the Brief JSON: change items in place (keep ids stable — never renumber), add new ids for new
+   requirements, close gaps the Q&A answered. Set `generated_at` to today; validate and render.
+4. Report the impact:
+   | Section | Was | Now | Affected artifacts |
+   |---|---|---|---|
+   Downstream artifacts computed before the change (`03-estimate`, `05-cost`, …) must be re-run;
+   `sier verify` will fail until they are.
 
-### Step 7: Output
+## Step 6: Several engagements
 
-The primary output is the **Structured RFP Brief** (markdown document). Additionally:
+`notebooklm list --json` shows notebooks; `ls ./consulting/*/engagement.json` (or under `$SIER_HOME`)
+shows workspaces. Run `sier status --ws <folder>` on each for a one-line state. Switch by working in
+the other folder — never by `notebooklm use`.
 
-1. **RFP Brief** (.md) — the canonical structured extraction, grounded in citations
-2. **Gaps & Questions List** — items to clarify with the client before proposal writing
-3. **Notebook Registry Entry** — engagement-to-notebook mapping for future reference
-4. **Amendment Impact Reports** — delta analysis when sources are added
+## Output
 
-Save the RFP Brief for downstream skill consumption. All other skills should reference this brief rather than re-querying NotebookLM independently.
+- `00-rfp-brief.json` — canonical; `00-rfp-brief.md` — rendered for people
+- The gaps list (Brief §8) — questions to send the client before the Q&A deadline
+- `engagement.json` updated with notebook id, sources date, brief date and tier
 
-## Grounding Labels
+## Key principles
 
-All content in the RFP Brief uses the standard grounding labels:
-
-| Label | Meaning | Usage |
-|-------|---------|-------|
-| `[RFP]` | Directly from client document | Cited from NotebookLM with reference |
-| `[Proposed]` | Our recommendation | When RFP is silent, we propose based on experience |
-| `[RFP+]` | RFP requirement + our enhancement | Client stated X, we recommend X + Y |
-
-## Integration with Other Skills
-
-This skill is **Step 0** — it runs before all other skills:
-
-```
-rfp-notebook (Step 0)
-    ↓ RFP Brief
-rfp-analysis (Go/No-Go)
-    ↓ GO decision
-create-proposal + technical-solution + effort-estimation + cost-estimation + team-composition + project-delivery
-    ↓ All artifacts
-proposal-presentation / design-presentation
-    ↓ Presentation ready
-proposal-review (Quality Gate)
-    ↓ Approved
-Submit to client
-```
-
-When another skill needs RFP data, it should first check if an RFP Brief exists. If not, prompt the user to run `rfp-notebook` first.
-
-## Key Principles
-
-- **One notebook per engagement** — never mix multiple RFPs in one notebook
-- **All sources before extraction** — upload everything (RFP + appendices + Q&A) before running queries
-- **Citations are mandatory** — every fact in the brief must trace to a source document
-- **Gaps are features** — explicitly listing what the RFP doesn't say is as valuable as what it does say
-- **Amendments are incremental** — don't re-extract everything; run delta queries on changes
-- **The brief is the contract** — downstream skills trust the brief; if the brief is wrong, everything is wrong
-
-For extraction query patterns and notebook management templates, read `references/extraction-catalog.md`.
+- **One extraction.** Downstream skills trust the Brief. If the Brief is wrong, everything is wrong —
+  so it is validated, cited and versioned.
+- **Gaps are features.** What the RFP doesn't say is as valuable as what it does.
+- **Stable ids.** Amendments edit items; they never renumber requirements other artifacts trace to.
+- **State the tier.** A Brief read straight from a PDF is valid work, but it says so.
